@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-🎯 OUTIL DE CALIBRATION DOFBOT - TRC 2025 COTONOU
+🎯 OUTIL DE CALIBRATION DOFBOT - DOFBOT WASTE SORTING COTONOU
 Calibration manuelle des positions du bras robotique
 
-Équipe: Ucaotech
+Projet: dofbot-waste-sorting
 Date: Octobre 2025
 """
 
@@ -351,8 +351,8 @@ class DofbotCalibration:
         os.system('cls' if os.name == 'nt' else 'clear')
         
         print("╔" + "="*58 + "╗")
-        print("║  🎯 CALIBRATION DOFBOT - TRC 2025 COTONOU 🇧🇯           ║")
-        print("║  Équipe: Ucaotech                                       ║")
+        print("║  🎯 CALIBRATION DOFBOT - DOFBOT WASTE SORTING           ║")
+        print("║  Projet: dofbot-waste-sorting                                       ║")
         print("╚" + "="*58 + "╝")
         
         mode = "🔄 SIMULATION" if self.simulation_mode else "✅ CONNECTÉ"
@@ -513,8 +513,8 @@ def main():
     print("╔" + "="*58 + "╗")
     print("║                                                          ║")
     print("║  🤖 OUTIL DE CALIBRATION DOFBOT                         ║")
-    print("║  TRC 2025 - Cotonou, Bénin 🇧🇯                          ║")
-    print("║  Équipe: Ucaotech                                       ║")
+    print("║  DOFBOT WASTE SORTING                          ║")
+    print("║  Projet: dofbot-waste-sorting                                       ║")
     print("║                                                          ║")
     print("╚" + "="*58 + "╝")
     
