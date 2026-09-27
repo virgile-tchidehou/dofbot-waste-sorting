@@ -46,7 +46,7 @@ source devel/setup.bash
 Place the model at:
 
 ```text
-models/best.pt
+~/dofbot_models/best.pt
 ```
 
 or define:
@@ -85,4 +85,4 @@ roslaunch dofbot_waste_sorting sorting.launch use_i2c:=false
 
 ## Before the first physical cycle
 
-Validate each pose independently using the calibration guide. The values in `config/positions.yaml` depend on the physical location of the camera, pick zone and bins.
+Validate each pose independently using the calibration guide. The values in `ros/dofbot_waste_sorting/config/positions.yaml` depend on the physical location of the camera, pick zone and bins.
