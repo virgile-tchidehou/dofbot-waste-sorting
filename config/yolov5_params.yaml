@@ -1,64 +1,26 @@
-# Configuration YOLOv5 pour le système de tri DOFbot TRC2025
-# Modèle YOLOv5m entraîné sur 510 images, 85.2% de précision
+# Runtime vision defaults for the DOFBOT waste-sorting project.
 
-# Chemins des fichiers
 model:
-  weights_path: "../models/best.pt"          # Chemin relatif vers le modèle entraîné
-  config_path: "../models/dataset.yaml"      # Configuration du dataset
-  framework: "yolov5"                         # Framework utilisé
-  architecture: "yolov5m"                     # Architecture (20.8M params)
+  weights_path: models/best.pt
+  framework: yolov5
 
-# Paramètres d'inférence
 inference:
-  conf_threshold: 0.6        # Seuil de confiance minimum (60%)
-  iou_threshold: 0.45        # Seuil IoU pour NMS (Non-Maximum Suppression)
-  max_detections: 10         # Nombre max de détections par image
-  img_size: 640              # Taille d'entrée du modèle (640x640)
-  device: "cuda:0"           # Device (cuda:0 pour Jetson Nano GPU, cpu sinon)
-  half_precision: true       # Utiliser FP16 sur GPU pour accélérer l'inférence
+  conf_threshold: 0.60
+  iou_threshold: 0.45
+  img_size: 640
 
-# Classes du modèle (3 catégories)
 classes:
   names:
-    - "dangereux"       # Classe 0: déchets dangereux (électronique, batteries, chimiques)
-    - "menagers"        # Classe 1: déchets ménagers ordinaires
-    - "recyclables"     # Classe 2: déchets recyclables (papier, plastique, métal)
+    - dangereux
+    - menagers
+    - recyclables
   num_classes: 3
-  
-# Filtrage des classes (optionnel)
-filter:
-  enabled: false           # Activer le filtrage par classe
-  allowed_classes: []      # Classes autorisées (vide = toutes)
 
-# Performance et optimisation
-performance:
-  agnostic_nms: false      # NMS indépendant des classes
-  augment: false           # Augmentation au moment de l'inférence (TTA)
-  visualize: false         # Sauvegarder les features maps (debug uniquement)
-  
-# Paramètres ROS
 ros:
-  image_topic: "/camera/image_raw"           # Topic d'entrée pour les images
-  result_topic: "/dofbot/classification"     # Topic de sortie pour les résultats
-  service_name: "/dofbot/classify_image"     # Service ROS pour classification
-  
-# Logging et debug
-debug:
-  save_results: false      # Sauvegarder les images avec détections
-  save_dir: "/tmp/yolov5"  # Répertoire de sauvegarde
-  verbose: true            # Afficher les logs détaillés
-  show_fps: true           # Afficher le FPS en temps réel
+  image_topic: /dofbot_camera/image_raw
+  service_name: /vision/classify
 
-# Dataset (pour référence)
-dataset:
-  train_images: 510        # Nombre d'images d'entraînement
-  val_images: 27           # Nombre d'images de validation
-  epochs_trained: 100      # Nombre d'époques d'entraînement
-  final_map50: 0.852       # mAP@0.5 final (85.2%)
-  image_size: [640, 640]   # Taille des images d'entraînement
-
-# Notes de calibration
-# - Modèle optimisé pour la caméra DOFbot (640x480)
-# - Éclairage : lumière naturelle/artificielle standard
-# - Distance optimale : 20-50 cm de la caméra
-# - Angle optimal : vue de dessus (comme pendant l'entraînement)
+notes:
+  - Model weights are not committed to Git.
+  - Use DOFBOT_MODEL_PATH to override the default weights location.
+  - Thresholds should be validated on the actual camera and lighting setup.
