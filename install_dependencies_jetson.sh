@@ -1,31 +1,19 @@
-#!/bin/bash
-# Script d'installation des dépendances pour DOFbot TRC2025
-# Compatible avec Jetson Nano (Ubuntu 18.04, PyTorch 1.6.0)
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "🔄 Installation des dépendances pour DOFbot TRC2025..."
-echo "📍 Jetson Nano Ubuntu 18.04 - PyTorch 1.6.0"
-echo
+echo "Installing DOFBOT waste-sorting runtime dependencies..."
 
-# Mettre à jour pip
-echo "📦 Mise à jour de pip..."
-python3 -m pip install --upgrade pip
+sudo apt update
+sudo apt install -y   python3-pip   python3-yaml   python3-opencv   python3-smbus   ros-melodic-cv-bridge   ros-melodic-sensor-msgs
 
-# Installer ultralytics (compatible avec PyTorch 1.6.0)
-echo "🤖 Installation d'ultralytics..."
-python3 -m pip install ultralytics==8.0.0
+python3 -m pip install --user   pandas   Pillow   websockets   tqdm
 
-# Installer les autres dépendances si nécessaire
-echo "📚 Installation des dépendances supplémentaires..."
+cat <<'EOF'
 
-# Vérifier les installations
-echo
-echo "✅ Vérification des installations:"
-python3 -c "import torch; print(f'PyTorch: {torch.__version__}')"
-python3 -c "import torchvision; print(f'Torchvision: {torchvision.__version__}')"
-python3 -c "import cv2; print(f'OpenCV: {cv2.__version__}')"
-python3 -c "import ultralytics; print(f'Ultralytics: {ultralytics.__version__}')"
+Jetson-specific notes:
+- Keep the CUDA-enabled PyTorch build supplied for your JetPack image.
+- Install Yahboom Arm_Lib using the vendor instructions for your DOFBOT image.
+- Build the ROS package with Catkin after cloning the repository.
+- Model weights are not downloaded by this script.
 
-echo
-echo "🎉 Installation terminée!"
-echo "💡 Vous pouvez maintenant tester votre modèle avec:"
-echo "   python3 vision_node.py --test"
+EOF
