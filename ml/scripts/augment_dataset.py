@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script d'Augmentation du Dataset pour TRC2025
+Script d'Augmentation du Dataset pour DOFBOT waste sorting
 ==============================================
 
 Ce script augmente intelligemment le dataset d'entraînement pour améliorer
@@ -11,7 +11,7 @@ Modes disponibles:
     - global   : Augmentation légère de toutes les images (×5)
     - mixed    : Combinaison optimale (recommandé)
 
-Auteur: TRC2025 Team
+Auteur: Dodji Virgile TCHIDEHOU
 Date: 11 octobre 2025
 """
 
@@ -53,7 +53,7 @@ class DatasetAugmenter:
         self.output_labels.mkdir(parents=True, exist_ok=True)
         
         print("=" * 70)
-        print("AUGMENTATION DU DATASET TRC2025")
+        print("AUGMENTATION DU DATASET DOFBOT waste sorting")
         print("=" * 70)
         print(f"Mode: {mode}")
         print(f"Images d'entraînement source: {TRAIN_IMAGES}")
@@ -265,7 +265,7 @@ class DatasetAugmenter:
         print("  1. Vérifier visuellement quelques images augmentées")
         print("  2. Mettre à jour dataset.yaml pour pointer vers data/augmented")
         print("  3. Réentraîner le modèle:")
-        print("     python scripts/train_model.py config/training_config.yaml --epochs 50")
+        print("     python3 ml/scripts/train_model.py config/training_config.yaml --epochs 50")
         print()
 
 
@@ -314,7 +314,7 @@ def visualize_samples():
 
 def main():
     """Point d'entrée principal"""
-    parser = argparse.ArgumentParser(description='Augmentation du dataset TRC2025')
+    parser = argparse.ArgumentParser(description='Augmentation du dataset DOFBOT waste sorting')
     parser.add_argument('--mode', type=str, default='mixed',
                        choices=['targeted', 'global', 'mixed'],
                        help='Mode d\'augmentation (défaut: mixed)')
@@ -342,7 +342,7 @@ def main():
         update_dataset_yaml()
     else:
         print("[INFO] Pour mettre à jour dataset.yaml automatiquement:")
-        print("  python scripts/augment_dataset.py --mode mixed --update-yaml")
+        print("  python3 ml/scripts/augment_dataset.py --mode mixed --update-yaml")
         print()
 
 
