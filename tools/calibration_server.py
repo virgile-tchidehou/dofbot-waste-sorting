@@ -17,7 +17,7 @@ except ImportError:
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG_PATH = ROOT / "config" / "positions.yaml"
+CONFIG_PATH = ROOT / "ros" / "dofbot_waste_sorting" / "config" / "positions.yaml"
 JOINT_KEYS = ["joint1", "joint2", "joint3", "joint4", "joint5", "gripper"]
 
 
