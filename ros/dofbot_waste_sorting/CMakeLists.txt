@@ -35,3 +35,9 @@ catkin_install_python(PROGRAMS
   scripts/sorting_sequence_demo.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+install(DIRECTORY
+  launch
+  config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
