@@ -1,80 +1,50 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Virtual Environment
+# Virtual environments
+.venv/
 venv/
-ENV/
 env/
-.venv
+ENV/
 
-# IDEs
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
-*.log
 
-# ROS
-devel/
+# ROS / Catkin
 build/
+devel/
 install/
 .catkin_workspace
-*.pyc
 
-# Logs
+# Logs and temporary files
 logs/
 *.log
 *.out
+*.tmp
+*.bak
 
-# =============================================================================
-# FICHIERS SPÉCIFIQUES AU ROBOT (NE PAS COMMITTER SUR GITHUB)
-# =============================================================================
+# Robot-specific local calibration / network data
+config/robot_*.yaml
+config/calibration_*.json
+config/camera_calibration_*.npz
+config/*_calibration.yaml
+config/network_local.yaml
+config/ip_config.json
 
-# ==========================================
-# DOSSIER REFERENCES (1.34 GB - Code original fabricant)
-# ==========================================
-REFERENCES/
-# Contient: Dofbot_original, dofbot_ws_examples, dofbot_ws_src
-# Disponible publiquement sur GitHub Yahboom
-
-# ==========================================
-# MODÈLES ML ENTRAÎNÉS (130+ MB)
-# ==========================================
-# Dossier models racine
+# Trained models / exported inference artifacts
 models/
-
-# Modèles YOLOv5 entraînés
-trc2025_train_models/models/trained_models/
-trc2025_train_models/models/yolov5/
-
-# Tous fichiers modèles ML
 *.pt
 *.pth
 *.weights
@@ -85,65 +55,28 @@ trc2025_train_models/models/yolov5/
 *.tflite
 *.mlmodel
 
-# ==========================================
-# DATASETS D'ENTRAÎNEMENT (160+ MB)
-# ==========================================
-# Dossiers images entraînement
-trc2025_train_models/data/augmented/
-trc2025_train_models/data/prepared/
-trc2025_train_models/data/raw/
-trc2025_train_models/data/train/
-trc2025_train_models/data/val/
-trc2025_train_models/data/test/
+# ML datasets and generated training outputs
+ml/data/train/
+ml/data/val/
+ml/data/test/
+ml/data/raw/
+ml/data/prepared/
+ml/data/augmented/
+ml/runs/
+ml/models/
 
-# Images (sauf samples pour documentation)
-trc2025_train_models/data/**/*.jpg
-trc2025_train_models/data/**/*.png
-trc2025_train_models/data/**/*.jpeg
-trc2025_train_models/data/**/*.bmp
-
-# Annotations volumineuses
-trc2025_train_models/data/**/*.xml
-trc2025_train_models/data/**/*.json
-
-# Archives datasets
+# Dataset archives
 *.zip
 *.tar
 *.tar.gz
 *.rar
 
-
-# ==========================================
-# CONFIGURATIONS SPÉCIFIQUES ROBOT
-# ==========================================
-# Calibration robot (spécifique à chaque setup)
-config/robot_*.yaml
-config/calibration_*.json
-config/camera_calibration_*.npz
-config/*_calibration.yaml
-
-# Paramètres réseau spécifiques
-config/network_local.yaml
-config/ip_config.json
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-*~
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pytest
-.pytest_cache/
-.coverage
-htmlcov/
-coverage.xml
+# Jupyter
+.ipynb_checkpoints/
 
 # Documentation builds
 docs/_build/
 site/
 
-# Archives (garder structure mais pas contenu détaillé si souhaité)
-# docs/archives/*.md
+# Vendor reference trees should be cloned separately
+REFERENCES/
