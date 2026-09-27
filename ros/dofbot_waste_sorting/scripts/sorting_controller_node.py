@@ -1,244 +1,234 @@
 #!/usr/bin/env python3
-import rospy
-import smbus 
+"""Main perception-to-manipulation controller for DOFBOT waste sorting."""
+
+from pathlib import Path
 import time
-from arm_info.srv import kinemarics, kinemaricsRequest
-from dofbot_tri.srv import Classify, ClassifyRequest
+
+import rospy
+import yaml
 from sensor_msgs.msg import Image
+
 from Arm_Lib import Arm_Device
+from dofbot_waste_sorting.srv import Classify, ClassifyRequest
 
-class DofbotTriController:
+try:
+    import smbus
+except ImportError:
+    smbus = None
+
+
+class DofbotSortingController:
     def __init__(self):
-        # Initialisation ROS
-        rospy.init_node('dofbot_tri_controller', anonymous=True)
-        
-        # ? PARAMÈTRES DE SÉCURITÉ
-        self.SERVO_LIMITS = {
-            1: (0, 270),   # Base
-            2: (0, 180),   # Épaule  
-            3: (0, 180),   # Coude
-            4: (0, 180),   # Poignet
-            5: (0, 270),   # Rotation pince
-            6: (0, 180)    # Pince
-        }
-        self.MAX_SPEED = 1500  # ms pour mouvement (plus = plus lent)
-        self.SAFE_HOME = [90, 90, 90, 90, 90, 30]  # Position SAFE
-        
-        # Initialisation du Bras
-        self.arm = Arm_Device()
-        time.sleep(2)  # ?? Plus long pour l'initialisation
-        self.arm.Arm_serial_set_torque(1)
-        
-        # Configuration I2C
-        try:
-            self.bus = smbus.SMBus(1)
-            self.arduino_addr = 0x08
-            rospy.loginfo("? I2C initialisé")
-        except Exception as e:
-            rospy.logerr(f"? Erreur I2C: {e}")
-            self.bus = None
-        
-        # Attente des services ROS
-        rospy.loginfo("? Attente des services ROS...")
-        try:
-            rospy.wait_for_service('/get_kinemarics', timeout=30)
-            rospy.wait_for_service('vision/classify', timeout=30)
-        except rospy.ROSException:
-            rospy.logerr("? Timeout attente services ROS")
-            return
-        
-        # Clients pour les services
-        self.kinematics_srv = rospy.ServiceProxy('/get_kinemarics', kinemarics)
-        self.vision_srv = rospy.ServiceProxy('vision/classify', Classify)
-        
-        # ? Positions CALIBRÉES (À ADAPTER À VOTRE SETUP)
-        self.home_position = [90, 90, 90, 90, 90, 30]  # Pince OUVERTE
-        self.bin_coordinates = {
-            "recyclable": (120, -80, 20),
-            "menager": (80, 150, 20), 
-            "dangereux": (200, 0, 20)
-        }
-        self.conveyor_pick_position = (150, 0, 30)
-        
-        rospy.loginfo("? Contrôleur Dofbot initialisé en mode SÉCURISÉ")
+        rospy.init_node("waste_sorting_controller")
 
-    def check_servo_limits(self, angles):
-        """? Vérifie que les angles sont dans les limites de sécurité"""
-        if angles is None or len(angles) != 6:
-            return False
-            
-        for i, angle in enumerate(angles):
-            servo_id = i + 1
-            min_angle, max_angle = self.SERVO_LIMITS[servo_id]
-            if not (min_angle <= angle <= max_angle):
-                rospy.logwarn(f"? Angle servo {servo_id} hors limites: {angle}")
+        self.camera_topic = rospy.get_param("~camera_topic", "/dofbot_camera/image_raw")
+        self.use_i2c = bool(rospy.get_param("~use_i2c", True))
+        self.i2c_address = int(rospy.get_param("~i2c_address", 0x08))
+        self.i2c_register = int(rospy.get_param("~i2c_register", 0))
+        self.move_duration_ms = int(rospy.get_param("~move_duration_ms", 1200))
+
+        default_config = self._source_root() / "config" / "positions.yaml"
+        config_path = Path(
+            rospy.get_param("~positions_config", str(default_config))
+        ).expanduser()
+        self.config = self._load_config(config_path)
+
+        self.arm = Arm_Device()
+        time.sleep(1.0)
+        self.arm.Arm_serial_set_torque(1)
+
+        self.bus = None
+        if self.use_i2c:
+            if smbus is None:
+                rospy.logwarn("smbus is unavailable; I2C triggering is disabled")
+                self.use_i2c = False
+            else:
+                try:
+                    self.bus = smbus.SMBus(1)
+                    rospy.loginfo("I2C trigger enabled at address 0x%02X", self.i2c_address)
+                except Exception as exc:
+                    rospy.logwarn("I2C unavailable: %s", exc)
+                    self.use_i2c = False
+
+        rospy.loginfo("Waiting for /vision/classify")
+        rospy.wait_for_service("vision/classify")
+        self.classify_service = rospy.ServiceProxy("vision/classify", Classify)
+
+        self.move_to("home_position")
+        rospy.loginfo("DOFBOT sorting controller ready")
+
+    @staticmethod
+    def _source_root():
+        current = Path(__file__).resolve()
+        try:
+            return current.parents[3]
+        except IndexError:
+            return Path.cwd()
+
+    @staticmethod
+    def _load_config(path):
+        if not path.exists():
+            raise FileNotFoundError(f"Position configuration not found: {path}")
+        with path.open("r", encoding="utf-8") as stream:
+            return yaml.safe_load(stream)
+
+    def _angles_from_pose(self, pose):
+        return [
+            int(pose["joint1"]),
+            int(pose["joint2"]),
+            int(pose["joint3"]),
+            int(pose["joint4"]),
+            int(pose["joint5"]),
+            int(pose.get("gripper", self.config["movement"]["gripper_open"])),
+        ]
+
+    def _within_limits(self, angles):
+        names = ["joint1", "joint2", "joint3", "joint4", "joint5", "gripper"]
+        for name, value in zip(names, angles):
+            lower, upper = self.config["limits"][name]
+            if not lower <= value <= upper:
+                rospy.logerr("%s=%s is outside [%s, %s]", name, value, lower, upper)
                 return False
         return True
 
-    def safe_move(self, angles, duration):
-        """? Déplacement SÉCURISÉ du bras avec vérifications"""
-        if not self.check_servo_limits(angles):
-            rospy.logerr("? Mouvement annulé - angles invalides")
-            return False
-            
-        try:
-            # Vérification supplémentaire de la durée
-            if duration < 500 or duration > 3000:
-                rospy.logwarn("??  Durée de mouvement anormale, ajustée")
-                duration = min(max(duration, 500), 3000)
-                
-            # Déplacement avec monitoring
-            self.arm.Arm_serial_servo_write6(
-                angles[0], angles[1], angles[2], 
-                angles[3], angles[4], angles[5], 
-                duration
-            )
-            
-            # Attente contrôlée
-            sleep_time = duration / 1000 + 0.5
-            time.sleep(sleep_time)
-            
-            rospy.loginfo(f"? Mouvement terminé: {angles}")
-            return True
-            
-        except Exception as e:
-            rospy.logerr(f"? Erreur pendant le mouvement: {e}")
-            self.emergency_stop()
+    def move_angles(self, angles, duration_ms=None):
+        duration_ms = int(duration_ms or self.move_duration_ms)
+        if not self._within_limits(angles):
             return False
 
-    def emergency_stop(self):
-        """? Arrêt d'urgence - position SAFE"""
-        rospy.logwarn("? Activation mode sécurité...")
-        try:
-            # Mouvement très lent vers position safe
-            self.arm.Arm_serial_servo_write6_array(self.SAFE_HOME, 3000)
-            time.sleep(3.5)
-            rospy.loginfo("? Mode sécurité activé")
-        except Exception as e:
-            rospy.logerr(f"? Erreur mode sécurité: {e}")
-
-    def read_i2c_detection(self):
-        """Lecture sécurisée I2C"""
-        if self.bus is None:
-            return False
-            
-        try:
-            detection_state = self.bus.read_byte_data(self.arduino_addr, 0)
-            return detection_state == 1
-        except Exception as e:
-            rospy.logwarn(f"??  Erreur I2C: {e}")
-            return False
-
-    def get_image_from_camera(self):
-        """Capture d'image avec timeout"""
-        try:
-            image_msg = rospy.wait_for_message("/usb_cam/image_raw", Image, timeout=5)
-            return image_msg
-        except rospy.ROSException:
-            rospy.logwarn("??  Timeout caméra - vérifier /usb_cam/image_raw")
-            return None
-
-    def execute_pick_and_place(self, target_coords):
-        """? Séquence Pick & Place SÉCURISÉE"""
-        rospy.loginfo("? Début séquence Pick & Place sécurisée")
-        
-        x_t, y_t, z_t = target_coords
-        x_p, y_p, z_p = self.conveyor_pick_position
-        
-        # ? SÉQUENCE SÉCURISÉE :
-        steps = [
-            # (description, x, y, z, pince)
-            ("Au-dessus convoyeur", x_p, y_p, z_p + 40, 30),
-            ("Approche objet", x_p, y_p, z_p + 10, 30), 
-            ("Saisie objet", x_p, y_p, z_p, 30),
-            ("? Fermeture pince", x_p, y_p, z_p, 135),
-            ("Lever objet", x_p, y_p, z_p + 40, 135),
-            ("Transport", x_t, y_t, z_t + 40, 135),
-            ("Descente corbeille", x_t, y_t, z_t + 10, 135),
-            ("Dépose", x_t, y_t, z_t, 135),
-            ("? Ouverture pince", x_t, y_t, z_t, 30),
-            ("Retrait", x_t, y_t, z_t + 30, 30),
-        ]
-        
-        for desc, x, y, z, gripper in steps:
-            rospy.loginfo(f"??  {desc}")
-            
-            if "pince" in desc.lower():
-                # Commande directe de la pince
-                try:
-                    self.arm.Arm_serial_servo_write(6, gripper, 800)
-                    time.sleep(1)
-                except Exception as e:
-                    rospy.logerr(f"? Erreur pince: {e}")
-                    return False
-            else:
-                # Mouvement du bras
-                angles = self.calculate_angles(x, y, z)
-                if not self.safe_move(angles + [gripper], 1500):
-                    rospy.logerr("? Séquence interrompue")
-                    return False
-            
-            time.sleep(0.5)  # Pause entre les steps
-        
-        # Retour position initiale
-        self.safe_move(self.home_position, 2000)
-        rospy.loginfo("? Séquence Pick & Place terminée avec succès")
+        self.arm.Arm_serial_servo_write6_array(angles, duration_ms)
+        time.sleep(duration_ms / 1000.0 + self.config["movement"]["delays"]["after_move"])
         return True
 
-    def run(self):
-        """Boucle principale SÉCURISÉE"""
-        rate = rospy.Rate(2)  # ? Plus lent pour la sécurité
-        
-        # Position initiale sécurisée
-        if not self.safe_move(self.home_position, 3000):
-            rospy.logerr("? Impossible d'atteindre position initiale")
-            return
-            
-        rospy.loginfo("? Contrôleur prêt - Mode sécurisé activé")
-        
-        while not rospy.is_shutdown():
-            try:
-                if self.read_i2c_detection():
-                    rospy.loginfo("? Objet détecté sur convoyeur!")
-                    self.reset_i2c_detection()
-                    
-                    # Petite pause pour stabilisation
-                    time.sleep(1)
-                    
-                    # Acquisition image
-                    image_msg = self.get_image_from_camera()
-                    if image_msg is None:
-                        continue
-                    
-                    # Classification
-                    waste_class, confidence = self.classify_waste(image_msg)
-                    rospy.loginfo(f"? Classification: {waste_class} ({confidence:.2f})")
-                    
-                    if confidence > 0.6:  # ? Seuil ajusté
-                        target_coords = self.bin_coordinates.get(waste_class)
-                        if target_coords:
-                            success = self.execute_pick_and_place(target_coords)
-                            if success:
-                                rospy.loginfo(f"??  Déchet '{waste_class}' trié avec succès!")
-                            else:
-                                rospy.logwarn("??  Échec de la séquence de tri")
-                        else:
-                            rospy.logwarn(f"? Classe inconnue: {waste_class}")
-                    else:
-                        rospy.logwarn(f"? Confiance trop faible: {confidence:.2f}")
-                
-                rate.sleep()
-                
-            except Exception as e:
-                rospy.logerr(f"? Erreur dans la boucle principale: {e}")
-                self.emergency_stop()
-                break
+    def move_to(self, pose_name, gripper=None):
+        pose = dict(self.config[pose_name])
+        if gripper is not None:
+            pose["gripper"] = gripper
+        return self.move_angles(self._angles_from_pose(pose))
 
-if __name__ == '__main__':
+    def move_to_bin(self, bin_name, gripper=None):
+        pose = dict(self.config["bins"][bin_name])
+        if gripper is not None:
+            pose["gripper"] = gripper
+        return self.move_angles(self._angles_from_pose(pose))
+
+    def set_gripper(self, angle):
+        lower, upper = self.config["limits"]["gripper"]
+        if not lower <= angle <= upper:
+            raise ValueError(f"Gripper angle {angle} outside [{lower}, {upper}]")
+        self.arm.Arm_serial_servo_write(6, int(angle), 700)
+        time.sleep(self.config["movement"]["delays"]["after_gripper"])
+
+    def object_detected(self):
+        if not self.use_i2c or self.bus is None:
+            return False
+        try:
+            return self.bus.read_byte_data(self.i2c_address, self.i2c_register) == 1
+        except Exception as exc:
+            rospy.logwarn_throttle(2.0, "I2C read failed: %s", exc)
+            return False
+
+    def reset_detection(self):
+        if not self.use_i2c or self.bus is None:
+            return
+        try:
+            self.bus.write_byte_data(self.i2c_address, self.i2c_register, 0)
+        except Exception as exc:
+            rospy.logwarn("Unable to reset I2C detection flag: %s", exc)
+
+    def capture_image(self):
+        try:
+            return rospy.wait_for_message(self.camera_topic, Image, timeout=5.0)
+        except rospy.ROSException:
+            rospy.logwarn("No image received from %s", self.camera_topic)
+            return None
+
+    def classify(self, image):
+        request = ClassifyRequest(image=image)
+        response = self.classify_service(request)
+        return int(response.class_id), float(response.confidence)
+
+    def execute_sort(self, bin_name):
+        movement = self.config["movement"]
+        open_gripper = int(movement["gripper_open"])
+        closed_gripper = int(movement["gripper_close"])
+
+        sequence_ok = (
+            self.move_to("safe_position", gripper=open_gripper)
+            and self.move_to("pick_position", gripper=open_gripper)
+        )
+        if not sequence_ok:
+            return False
+
+        self.set_gripper(closed_gripper)
+        time.sleep(movement["delays"]["after_grasp"])
+
+        if not self.move_to("safe_position", gripper=closed_gripper):
+            return False
+        if not self.move_to_bin(bin_name, gripper=closed_gripper):
+            return False
+
+        self.set_gripper(open_gripper)
+        time.sleep(movement["delays"]["after_release"])
+
+        return (
+            self.move_to("safe_position", gripper=open_gripper)
+            and self.move_to("home_position", gripper=open_gripper)
+        )
+
+    def process_object(self):
+        self.reset_detection()
+
+        if not self.move_to("observation_position"):
+            return
+
+        image = self.capture_image()
+        if image is None:
+            self.move_to("home_position")
+            return
+
+        class_id, confidence = self.classify(image)
+        threshold = float(self.config["classification"]["min_confidence"])
+
+        if class_id < 0 or confidence < threshold:
+            rospy.logwarn(
+                "Object rejected: class=%d confidence=%.2f threshold=%.2f",
+                class_id,
+                confidence,
+                threshold,
+            )
+            self.move_to("home_position")
+            return
+
+        mapping = self.config["class_to_bin"]
+        bin_name = mapping.get(class_id, mapping.get(str(class_id)))
+        if bin_name not in self.config["bins"]:
+            rospy.logerr("No bin configured for class id %d", class_id)
+            self.move_to("home_position")
+            return
+
+        rospy.loginfo("Sorting class %d into '%s'", class_id, bin_name)
+        if not self.execute_sort(bin_name):
+            rospy.logerr("Sorting sequence failed")
+            self.move_to("home_position")
+
+    def run(self):
+        rate = rospy.Rate(2)
+        if not self.use_i2c:
+            rospy.logwarn(
+                "Automatic trigger is disabled. Enable ~use_i2c after connecting the detector."
+            )
+
+        while not rospy.is_shutdown():
+            if self.object_detected():
+                self.process_object()
+            rate.sleep()
+
+
+if __name__ == "__main__":
     try:
-        controller = DofbotTriController()
-        controller.run()
+        DofbotSortingController().run()
     except rospy.ROSInterruptException:
-        rospy.loginfo("? Contrôleur arrêté proprement")
-    except Exception as e:
-        rospy.logerr(f"? Erreur critique: {e}")
+        pass
+    except Exception as exc:
+        rospy.logfatal("Sorting controller stopped: %s", exc)
