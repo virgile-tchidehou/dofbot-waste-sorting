@@ -82,7 +82,6 @@ The project can be explored without the physical arm, but movement and end-to-en
 
 ```text
 dofbot-waste-sorting/
-├── config/                  # Joint presets and vision parameters
 ├── data/
 │   └── samples/             # Small evaluation image set
 ├── docs/
@@ -91,6 +90,7 @@ dofbot-waste-sorting/
 ├── ml/                      # Model training and evaluation workspace
 ├── ros/
 │   └── dofbot_waste_sorting/
+│       ├── config/          # Camera, vision and calibrated arm poses
 │       ├── launch/
 │       ├── scripts/
 │       └── srv/
@@ -135,7 +135,7 @@ Large trained weights and full datasets are deliberately not stored in Git.
 By default, the vision node looks for:
 
 ```text
-models/best.pt
+~/dofbot_models/best.pt
 ```
 
 You can also point to another weights file with:
@@ -153,7 +153,7 @@ The `ml/` directory keeps the training configuration and reproducibility scripts
 Joint positions are stored in:
 
 ```text
-config/positions.yaml
+ros/dofbot_waste_sorting/config/positions.yaml
 ```
 
 They are hardware-specific and must be checked before use on another DOFBOT.
