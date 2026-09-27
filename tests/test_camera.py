@@ -16,7 +16,7 @@ class CameraConfigurationTests(unittest.TestCase):
 
     def test_camera_config_matches_runtime_topic(self):
         config = yaml.safe_load(
-            (ROOT / "config/camera_params.yaml").read_text(encoding="utf-8")
+            (ROOT / "ros/dofbot_waste_sorting/config/camera.yaml").read_text(encoding="utf-8")
         )
         self.assertEqual(
             config["ros"]["image_topic"],
@@ -25,7 +25,7 @@ class CameraConfigurationTests(unittest.TestCase):
 
     def test_resolution_is_positive(self):
         config = yaml.safe_load(
-            (ROOT / "config/camera_params.yaml").read_text(encoding="utf-8")
+            (ROOT / "ros/dofbot_waste_sorting/config/camera.yaml").read_text(encoding="utf-8")
         )
         self.assertGreater(config["camera"]["width"], 0)
         self.assertGreater(config["camera"]["height"], 0)
