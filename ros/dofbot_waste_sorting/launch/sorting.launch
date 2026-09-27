@@ -1,23 +1,28 @@
 <launch>
-  <arg name="camera_index" default="0" />
   <arg name="use_i2c" default="true" />
 
   <node pkg="dofbot_waste_sorting"
         type="camera_node.py"
         name="dofbot_camera"
         output="screen">
-    <param name="camera_index" value="$(arg camera_index)" />
+    <rosparam command="load"
+              file="$(find dofbot_waste_sorting)/config/camera.yaml" />
   </node>
 
   <node pkg="dofbot_waste_sorting"
         type="vision_node.py"
         name="waste_vision"
-        output="screen" />
+        output="screen">
+    <rosparam command="load"
+              file="$(find dofbot_waste_sorting)/config/vision.yaml" />
+  </node>
 
   <node pkg="dofbot_waste_sorting"
         type="sorting_controller_node.py"
         name="waste_sorting_controller"
         output="screen">
     <param name="use_i2c" value="$(arg use_i2c)" />
+    <param name="positions_config"
+           value="$(find dofbot_waste_sorting)/config/positions.yaml" />
   </node>
 </launch>
