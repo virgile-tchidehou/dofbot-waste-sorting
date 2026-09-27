@@ -1,21 +1,15 @@
 training:
-  # Model
-  model: yolov5m  # Modèle medium (plus puissant que 's')
+  model: yolov5m
   img_size: 640
-  
-  # Training parameters
-  epochs: 100     # Doublé pour plus d'apprentissage
-  batch_size: 8   
-  patience: 25    # Augmenté pour laisser plus de temps au modèle   
-  
-  # Optimization
+  epochs: 100
+  batch_size: 8
+  patience: 25
+
   lr0: 0.01
   momentum: 0.937
   weight_decay: 0.0005
-  
-  # Dataset
+
   data: ../data/dataset.yaml
-  
-  # Output
-  project: ../models/trained_models
-  name: garbage_classifier_v1
+
+  project: ../runs
+  name: dofbot_waste_sorting
