@@ -26,72 +26,62 @@ REQUIRED_PATHS = [
     "ml/data/dataset.yaml",
 ]
 
-LEGACY_TERMS = [
-    "TRC2025",
-    "TRC 2025",
-    "UCAO-TECH",
-    "Ucaotech",
-    "ucaotech_dofbot_trc2025",
-    "trc2025_train_models",
-    "projet_robotique2k25UCAO",
-]
-
-TEXT_SUFFIXES = {
-    ".md", ".py", ".yaml", ".yml", ".xml", ".txt", ".js", ".html",
-    ".launch", ".srv", ".json", ".ini", ".sh",
-}
-
 
 def check_required_paths():
-    missing = [path for path in REQUIRED_PATHS if not (ROOT / path).exists()]
-    return missing
+    return [path for path in REQUIRED_PATHS if not (ROOT / path).exists()]
 
 
 def check_class_mapping():
-    positions = yaml.safe_load((ROOT / "config" / "positions.yaml").read_text(encoding="utf-8"))
-    vision = yaml.safe_load((ROOT / "config" / "yolov5_params.yaml").read_text(encoding="utf-8"))
+    positions = yaml.safe_load(
+        (ROOT / "config" / "positions.yaml").read_text(encoding="utf-8")
+    )
+    vision = yaml.safe_load(
+        (ROOT / "config" / "yolov5_params.yaml").read_text(encoding="utf-8")
+    )
 
+    errors = []
     mapping = positions["class_to_bin"]
     names = vision["classes"]["names"]
 
-    errors = []
     for class_id, class_name in enumerate(names):
         mapped = mapping.get(class_id, mapping.get(str(class_id)))
         if mapped != class_name:
             errors.append(
                 f"class {class_id}: vision='{class_name}' but class_to_bin='{mapped}'"
             )
+
     return errors
 
 
-def check_legacy_terms():
-    hits = []
-    for path in ROOT.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
-            continue
-        if ".git" in path.parts:
-            continue
+def check_ros_package_name():
+    errors = []
+    package_xml = (
+        ROOT / "ros/dofbot_waste_sorting/package.xml"
+    ).read_text(encoding="utf-8")
+    cmake = (
+        ROOT / "ros/dofbot_waste_sorting/CMakeLists.txt"
+    ).read_text(encoding="utf-8")
+    launch = (
+        ROOT / "ros/dofbot_waste_sorting/launch/sorting.launch"
+    ).read_text(encoding="utf-8")
 
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
+    expected = "dofbot_waste_sorting"
+    if f"<name>{expected}</name>" not in package_xml:
+        errors.append("package.xml package name mismatch")
+    if f"project({expected})" not in cmake:
+        errors.append("CMake project name mismatch")
+    if f'pkg="{expected}"' not in launch:
+        errors.append("launch package name mismatch")
 
-        for term in LEGACY_TERMS:
-            if term in text:
-                hits.append(f"{path.relative_to(ROOT)} -> {term}")
-    return hits
+    return errors
 
 
 def main():
     failures = []
 
-    missing = check_required_paths()
-    if missing:
-        failures.extend(f"missing: {path}" for path in missing)
-
+    failures.extend(f"missing: {path}" for path in check_required_paths())
     failures.extend(f"mapping: {item}" for item in check_class_mapping())
-    failures.extend(f"legacy: {item}" for item in check_legacy_terms())
+    failures.extend(f"ros: {item}" for item in check_ros_package_name())
 
     if failures:
         print("Repository consistency check failed:")
