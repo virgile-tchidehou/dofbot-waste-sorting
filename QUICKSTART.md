@@ -1,63 +1,71 @@
-# 🚀 QUICKSTART - Démarrage Rapide (5 minutes)
+# Quick Start
 
-**Ucaotech DOFbot TRC2025 - Guide Ultra-Rapide**
+This guide gets the repository into a ROS Catkin workspace without relying on the old repository layout.
 
----
-
-## ⚡ Installation Express
+## 1. Clone
 
 ```bash
-# 1. Cloner le projet
-git clone https://github.com/Badmus2005/uca.git
-cd uca/ucaotech_dofbot_trc2025
+git clone https://github.com/virgile-tchidehou/projet_robotique2k25UCAO.git
+cd projet_robotique2k25UCAO
+```
 
-# 2. Installer dépendances
+## 2. Install Python dependencies
+
+Use the Python/JetPack environment already configured on the Jetson when possible.
+
+```bash
 pip3 install -r requirements.txt
+```
 
-# 3. Setup ROS
-mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src
-ln -s ~/uca/ucaotech_dofbot_trc2025/ros_package/ucaotech_dofbot_trc2025 .
-cd ~/catkin_ws && catkin_make
+The DOFbot `Arm_Lib` package and ROS dependencies are hardware/environment specific and may need to be installed separately.
+
+## 3. Add the ROS package to Catkin
+
+From the repository root:
+
+```bash
+mkdir -p ~/catkin_ws/src
+ln -s "$(pwd)/ros_package" ~/catkin_ws/src/dofbot_tri
+
+cd ~/catkin_ws
+catkin_make
 source devel/setup.bash
-
-# 4. Lancer le système
-roslaunch ucaotech_dofbot_trc2025 tri.launch
 ```
 
-**✅ Terminé ! Le système est maintenant opérationnel.**
-
----
-
-## 🎮 Utilisation Immédiate
-
-### Lancer le Tri Automatique
+## 4. Launch
 
 ```bash
-source ~/catkin_ws/devel/setup.bash
-roslaunch ucaotech_dofbot_trc2025 tri.launch
+roslaunch dofbot_tri tri.launch
 ```
 
-**Placez un déchet devant la caméra et observez le tri !**
+The launch file also expects the DOFbot kinematics package/service used by the original robot environment.
 
----
+## 5. Calibration
 
-## 🧪 Test Rapide
+Console:
 
 ```bash
-# Tester le modèle YOLOv5
-python3 tests/test_yolov5_model.py
-
-# Si ça passe → Tout fonctionne ✅
+python3 scripts/calibrate_positions.py
 ```
 
----
+Browser interface:
 
-## 🎯 Prochaines Étapes
+```bash
+python3 scripts/calibration_server.py
+```
 
-- **Calibration** : `python3 scripts/calibrate_positions.py`
-- **Interface Web** : Ouvrir `web/calibration_interface.html`
-- **Documentation** : Voir [README.md](README.md)
+Then open `web/calibration_interface.html`.
 
----
+## 6. Tests
 
-**🤖 Prêt pour TRC 2025 ! 🏆**
+Examples:
+
+```bash
+python3 tests/test_camera.py
+python3 tests/test_vision_node.py
+python3 tests/test_dofbot_movements.py
+```
+
+Some tests require the physical robot, camera, ROS services or model weights.
+
+For more detail, see [docs/INDEX.md](docs/INDEX.md).
