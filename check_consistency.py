@@ -1,195 +1,107 @@
 #!/usr/bin/env python3
-"""
-Script de vérification de cohérence pour DOFbot TRC2025
-Vérifie la compatibilité entre tous les composants
-"""
-import os
-import json
-import yaml
+"""Static repository checks for dofbot-waste-sorting."""
+
 from pathlib import Path
+import sys
 
-def check_models_folder():
-    """Vérifie le dossier models"""
-    print("🔍 Vérification du dossier models...")
+import yaml
 
-    models_dir = Path(__file__).parent / "models"
-    issues = []
 
-    # Vérifier les fichiers requis
-    required_files = ['best.pt', 'class_names.json', 'dataset.yaml']
-    for file in required_files:
-        if not (models_dir / file).exists():
-            issues.append(f"❌ Fichier manquant: {file}")
+ROOT = Path(__file__).resolve().parent
 
-    # Vérifier class_names.json
-    if (models_dir / 'class_names.json').exists():
+REQUIRED_PATHS = [
+    "README.md",
+    "config/positions.yaml",
+    "config/yolov5_params.yaml",
+    "ros/dofbot_waste_sorting/CMakeLists.txt",
+    "ros/dofbot_waste_sorting/package.xml",
+    "ros/dofbot_waste_sorting/launch/sorting.launch",
+    "ros/dofbot_waste_sorting/scripts/camera_node.py",
+    "ros/dofbot_waste_sorting/scripts/vision_node.py",
+    "ros/dofbot_waste_sorting/scripts/sorting_controller_node.py",
+    "ros/dofbot_waste_sorting/srv/Classify.srv",
+    "tools/calibrate_positions.py",
+    "tools/calibration_server.py",
+    "web/calibration_interface.html",
+    "ml/data/dataset.yaml",
+]
+
+LEGACY_TERMS = [
+    "TRC2025",
+    "TRC 2025",
+    "UCAO-TECH",
+    "Ucaotech",
+    "ucaotech_dofbot_trc2025",
+    "trc2025_train_models",
+    "projet_robotique2k25UCAO",
+]
+
+TEXT_SUFFIXES = {
+    ".md", ".py", ".yaml", ".yml", ".xml", ".txt", ".js", ".html",
+    ".launch", ".srv", ".json", ".ini", ".sh",
+}
+
+
+def check_required_paths():
+    missing = [path for path in REQUIRED_PATHS if not (ROOT / path).exists()]
+    return missing
+
+
+def check_class_mapping():
+    positions = yaml.safe_load((ROOT / "config" / "positions.yaml").read_text(encoding="utf-8"))
+    vision = yaml.safe_load((ROOT / "config" / "yolov5_params.yaml").read_text(encoding="utf-8"))
+
+    mapping = positions["class_to_bin"]
+    names = vision["classes"]["names"]
+
+    errors = []
+    for class_id, class_name in enumerate(names):
+        mapped = mapping.get(class_id, mapping.get(str(class_id)))
+        if mapped != class_name:
+            errors.append(
+                f"class {class_id}: vision='{class_name}' but class_to_bin='{mapped}'"
+            )
+    return errors
+
+
+def check_legacy_terms():
+    hits = []
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+            continue
+        if ".git" in path.parts:
+            continue
+
         try:
-            with open(models_dir / 'class_names.json', 'r') as f:
-                data = json.load(f)
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
 
-            # Vérifier la structure
-            if 'categories' not in data:
-                issues.append("❌ class_names.json: clé 'categories' manquante")
-            if 'class_ids' not in data:
-                issues.append("❌ class_names.json: clé 'class_ids' manquante")
+        for term in LEGACY_TERMS:
+            if term in text:
+                hits.append(f"{path.relative_to(ROOT)} -> {term}")
+    return hits
 
-            # Vérifier cohérence des classes
-            categories = data.get('categories', {})
-            class_ids = data.get('class_ids', {})
-
-            if len(categories) != len(class_ids):
-                issues.append("❌ Incohérence nombre de classes entre categories et class_ids")
-
-        except json.JSONDecodeError:
-            issues.append("❌ class_names.json: JSON invalide")
-
-    # Vérifier dataset.yaml
-    if (models_dir / 'dataset.yaml').exists():
-        try:
-            with open(models_dir / 'dataset.yaml', 'r') as f:
-                data = yaml.safe_load(f)
-
-            # Vérifier qu'il n'y a pas de chemin Windows
-            path = data.get('path', '')
-            if 'D:\\' in path or 'C:\\' in path:
-                issues.append(f"❌ dataset.yaml: chemin Windows détecté: {path}")
-
-            # Vérifier nc et names
-            nc = data.get('nc', 0)
-            names = data.get('names', [])
-            if nc != len(names):
-                issues.append(f"❌ dataset.yaml: nc ({nc}) != len(names) ({len(names)})")
-
-        except yaml.YAMLError:
-            issues.append("❌ dataset.yaml: YAML invalide")
-
-    return issues
-
-def check_ros_package():
-    """Vérifie le package ROS"""
-    print("🔍 Vérification du package ROS...")
-
-    ros_dir = Path(__file__).parent / "ros_package"
-    issues = []
-
-    # Vérifier les scripts Python
-    scripts_dir = ros_dir / "scripts"
-    if scripts_dir.exists():
-        scripts = list(scripts_dir.glob("*.py"))
-        for script in scripts:
-            try:
-                with open(script, 'r') as f:
-                    first_line = f.readline().strip()
-
-                # Vérifier shebang Python 3
-                if not first_line.startswith('#!/usr/bin/env python3'):
-                    issues.append(f"❌ {script.name}: shebang Python 2 détecté")
-
-            except Exception as e:
-                issues.append(f"❌ Erreur lecture {script.name}: {e}")
-
-    # Vérifier service Classify.srv
-    srv_file = ros_dir / "srv" / "Classify.srv"
-    if srv_file.exists():
-        try:
-            with open(srv_file, 'r') as f:
-                content = f.read()
-
-            # Vérifier que class_id est int32, pas string
-            if 'string class_id' in content:
-                issues.append("❌ Classify.srv: class_id devrait être int32, pas string")
-
-        except Exception as e:
-            issues.append(f"❌ Erreur lecture Classify.srv: {e}")
-
-    # Vérifier CMakeLists.txt
-    cmake_file = ros_dir / "CMakeLists.txt"
-    if cmake_file.exists():
-        try:
-            with open(cmake_file, 'r') as f:
-                content = f.read()
-
-            # Vérifier que les scripts référencés existent
-            scripts_dir = ros_dir / "scripts"
-            for line in content.split('\n'):
-                if line.strip().startswith('scripts/'):
-                    script_name = line.strip().replace('scripts/', '').replace(')', '')
-                    script_path = scripts_dir / script_name
-                    if not script_path.exists():
-                        issues.append(f"❌ CMakeLists.txt référence script inexistant: {script_name}")
-
-        except Exception as e:
-            issues.append(f"❌ Erreur lecture CMakeLists.txt: {e}")
-
-    return issues
-
-def check_dependencies():
-    """Vérifie les dépendances Python"""
-    print("🔍 Vérification des dépendances...")
-
-    issues = []
-
-    # Dépendances critiques pour Jetson
-    critical_deps = ['torch', 'cv2', 'numpy', 'rospy']
-
-    for dep in critical_deps:
-        try:
-            if dep == 'cv2':
-                import cv2
-            else:
-                __import__(dep)
-        except ImportError:
-            issues.append(f"❌ Dépendance manquante: {dep}")
-
-    # Vérifier version PyTorch (devrait être 1.6.0 sur Jetson)
-    try:
-        import torch
-        version = torch.__version__
-        print(f"✅ PyTorch version: {version}")
-
-        # Avertissement si pas 1.6.0 (version JetPack)
-        if '1.6.0' not in version:
-            issues.append(f"⚠️ Version PyTorch {version} - Attendu 1.6.0 pour JetPack")
-
-    except ImportError:
-        issues.append("❌ PyTorch non installé")
-
-    return issues
 
 def main():
-    """Fonction principale"""
-    print("="*70)
-    print("🔍 VÉRIFICATION DE COHÉRENCE - DOFbot TRC2025")
-    print("="*70)
+    failures = []
 
-    all_issues = []
+    missing = check_required_paths()
+    if missing:
+        failures.extend(f"missing: {path}" for path in missing)
 
-    # Vérifications
-    all_issues.extend(check_models_folder())
-    all_issues.extend(check_ros_package())
-    all_issues.extend(check_dependencies())
+    failures.extend(f"mapping: {item}" for item in check_class_mapping())
+    failures.extend(f"legacy: {item}" for item in check_legacy_terms())
 
-    # Résultats
-    print("\n" + "="*70)
-    print("📊 RÉSULTATS:")
+    if failures:
+        print("Repository consistency check failed:")
+        for failure in failures:
+            print(f" - {failure}")
+        return 1
 
-    if not all_issues:
-        print("✅ Aucune erreur détectée!")
-        print("🎉 Le projet est prêt pour le déploiement sur Jetson Nano.")
-    else:
-        print(f"❌ {len(all_issues)} problème(s) détecté(s):")
-        for issue in all_issues:
-            print(f"   {issue}")
+    print("Repository consistency check passed.")
+    return 0
 
-    print("="*70)
-
-    # Recommandations
-    if all_issues:
-        print("\n💡 RECOMMANDATIONS:")
-        print("1. Corrigez les erreurs ci-dessus")
-        print("2. Testez avec: python3 test_setup_jetson.py")
-        print("3. Sur Jetson: ./install_dependencies_jetson.sh")
-        print("4. Lancez: python3 vision_node.py --test")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
