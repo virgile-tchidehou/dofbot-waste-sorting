@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parent
 
 REQUIRED_PATHS = [
     "README.md",
-    "config/positions.yaml",
-    "config/yolov5_params.yaml",
+    "ros/dofbot_waste_sorting/config/positions.yaml",
+    "ros/dofbot_waste_sorting/config/vision.yaml",
     "ros/dofbot_waste_sorting/CMakeLists.txt",
     "ros/dofbot_waste_sorting/package.xml",
     "ros/dofbot_waste_sorting/launch/sorting.launch",
@@ -33,10 +33,10 @@ def check_required_paths():
 
 def check_class_mapping():
     positions = yaml.safe_load(
-        (ROOT / "config" / "positions.yaml").read_text(encoding="utf-8")
+        (ROOT / "ros" / "dofbot_waste_sorting" / "config" / "positions.yaml").read_text(encoding="utf-8")
     )
     vision = yaml.safe_load(
-        (ROOT / "config" / "yolov5_params.yaml").read_text(encoding="utf-8")
+        (ROOT / "ros" / "dofbot_waste_sorting" / "config" / "vision.yaml").read_text(encoding="utf-8")
     )
 
     errors = []
