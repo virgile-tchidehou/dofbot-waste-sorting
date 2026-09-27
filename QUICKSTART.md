@@ -35,8 +35,8 @@ source devel/setup.bash
 The model is intentionally not versioned.
 
 ```bash
-mkdir -p models
-cp /path/to/best.pt models/best.pt
+mkdir -p ~/dofbot_models
+cp /path/to/best.pt ~/dofbot_models/best.pt
 ```
 
 Or:
@@ -50,7 +50,7 @@ export DOFBOT_MODEL_PATH=/absolute/path/to/best.pt
 Open:
 
 ```text
-config/positions.yaml
+ros/dofbot_waste_sorting/config/positions.yaml
 ```
 
 Then validate poses carefully:
