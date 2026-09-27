@@ -1,23 +1,21 @@
 # Quick Start
 
-This guide gets the repository into a ROS Catkin workspace without relying on the old repository layout.
-
 ## 1. Clone
 
 ```bash
-git clone https://github.com/virgile-tchidehou/projet_robotique2k25UCAO.git
-cd projet_robotique2k25UCAO
+git clone https://github.com/virgile-tchidehou/dofbot-waste-sorting.git
+cd dofbot-waste-sorting
 ```
 
 ## 2. Install Python dependencies
 
-Use the Python/JetPack environment already configured on the Jetson when possible.
+On Jetson Nano, keep the CUDA-enabled PyTorch/OpenCV versions provided by your JetPack image when possible.
 
 ```bash
 pip3 install -r requirements.txt
 ```
 
-The DOFbot `Arm_Lib` package and ROS dependencies are hardware/environment specific and may need to be installed separately.
+The Yahboom `Arm_Lib` package must also be available on the robot.
 
 ## 3. Add the ROS package to Catkin
 
@@ -25,47 +23,61 @@ From the repository root:
 
 ```bash
 mkdir -p ~/catkin_ws/src
-ln -s "$(pwd)/ros_package" ~/catkin_ws/src/dofbot_tri
+ln -s "$(pwd)/ros/dofbot_waste_sorting" ~/catkin_ws/src/dofbot_waste_sorting
 
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
 ```
 
-## 4. Launch
+## 4. Provide the model
+
+The model is intentionally not versioned.
 
 ```bash
-roslaunch dofbot_tri tri.launch
+mkdir -p models
+cp /path/to/best.pt models/best.pt
 ```
 
-The launch file also expects the DOFbot kinematics package/service used by the original robot environment.
-
-## 5. Calibration
-
-Console:
+Or:
 
 ```bash
-python3 scripts/calibrate_positions.py
+export DOFBOT_MODEL_PATH=/absolute/path/to/best.pt
 ```
 
-Browser interface:
+## 5. Review calibration before moving the arm
+
+Open:
+
+```text
+config/positions.yaml
+```
+
+Then validate poses carefully:
 
 ```bash
-python3 scripts/calibration_server.py
+python3 ros/dofbot_waste_sorting/scripts/sorting_sequence_demo.py home_position
+```
+
+## 6. Launch
+
+```bash
+roslaunch dofbot_waste_sorting sorting.launch
+```
+
+To disable the external I²C trigger while validating the ROS stack:
+
+```bash
+roslaunch dofbot_waste_sorting sorting.launch use_i2c:=false
+```
+
+## 7. Calibration tools
+
+```bash
+python3 tools/calibrate_positions.py
+python3 tools/calibration_server.py
 ```
 
 Then open `web/calibration_interface.html`.
 
-## 6. Tests
-
-Examples:
-
-```bash
-python3 tests/test_camera.py
-python3 tests/test_vision_node.py
-python3 tests/test_dofbot_movements.py
-```
-
-Some tests require the physical robot, camera, ROS services or model weights.
-
-For more detail, see [docs/INDEX.md](docs/INDEX.md).
+See [docs/INDEX.md](docs/INDEX.md) for the rest of the documentation.
