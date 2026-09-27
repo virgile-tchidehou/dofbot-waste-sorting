@@ -1,194 +1,71 @@
 #!/usr/bin/env python3
-"""
-Script d'Entraînement Avancé pour TRC2025
-==========================================
+"""Config-driven YOLOv5 training wrapper."""
 
-Modes disponibles:
-    - fine-tune : Continue depuis best.pt (85.2%) - RECOMMANDÉ
-    - from-scratch : Repart de zéro avec yolov5m.pt
-    - resume : Reprend un entraînement interrompu
-
-Auteur: TRC2025 Team
-Date: 11 octobre 2025
-"""
-
-import sys
+import argparse
+import os
 from pathlib import Path
 import subprocess
-import yaml
-import argparse
+import sys
 
-class AdvancedModelTrainer:
-    def __init__(self, base_dir="."):
-        self.base_dir = Path(base_dir)
-        self.yolov5_dir = self.base_dir / "models" / "yolov5"
-        self.best_model = self.base_dir / "models" / "trained_models" / "garbage_classifier_v1" / "weights" / "best.pt"
-        
-    def setup_yolov5(self):
-        """Installe YOLOv5"""
-        if not self.yolov5_dir.exists():
-            print("📥 Clonage de YOLOv5...")
-            subprocess.run([
-                "git", "clone", "https://github.com/ultralytics/yolov5.git",
-                str(self.yolov5_dir)
-            ], check=True)
-            
-            print("📦 Installation des dépendances...")
-            subprocess.run([
-                "pip", "install", "-r", str(self.yolov5_dir / "requirements.txt")
-            ], check=True)
-        
-        print("✅ YOLOv5 prêt")
-    
-    def load_config(self):
-        """Charge la configuration d'entraînement"""
-        config_path = self.base_dir / "config" / "training_config.yaml"
-        with open(config_path, 'r') as f:
-            return yaml.safe_load(f)['training']
-    
-    def train(self, mode='fine-tune', epochs=None, name_suffix=''):
-        """
-        Lance l'entraînement
-        
-        Args:
-            mode: 'fine-tune', 'from-scratch', ou 'resume'
-            epochs: Nombre d'epochs (None = utiliser config)
-            name_suffix: Suffixe pour le nom du modèle
-        """
-        config = self.load_config()
-        dataset_path = self.base_dir / "data" / "dataset.yaml"
-        
-        if not dataset_path.exists():
-            print("❌ dataset.yaml non trouvé")
-            return
-        
-        # Déterminer les poids de départ
-        if mode == 'fine-tune':
-            if not self.best_model.exists():
-                print(f"❌ Modèle best.pt introuvable: {self.best_model}")
-                print("   Utilisez mode 'from-scratch' pour commencer de zéro")
-                return
-            weights = str(self.best_model)
-            training_type = "FINE-TUNING (suite de l'entraînement)"
-        elif mode == 'from-scratch':
-            weights = f"{config['model']}.pt"
-            training_type = "FROM SCRATCH (depuis zéro)"
-        elif mode == 'resume':
-            last_checkpoint = self.base_dir / "models" / "trained_models" / config['name'] / "weights" / "last.pt"
-            if not last_checkpoint.exists():
-                print(f"❌ Checkpoint last.pt introuvable: {last_checkpoint}")
-                return
-            weights = str(last_checkpoint)
-            training_type = "RESUME (reprise d'un entraînement interrompu)"
-        else:
-            print(f"❌ Mode invalide: {mode}")
-            return
-        
-        # Nombre d'epochs
-        num_epochs = epochs if epochs else config['epochs']
-        
-        # Nom du modèle
-        if name_suffix:
-            model_name = f"{config['name']}_{name_suffix}"
-        else:
-            if mode == 'fine-tune':
-                model_name = f"{config['name']}_finetuned"
-            elif mode == 'from-scratch':
-                model_name = f"{config['name']}_fromscratch"
-            else:
-                model_name = config['name']
-        
-        print("=" * 70)
-        print("🚀 ENTRAÎNEMENT DU MODÈLE TRC2025")
-        print("=" * 70)
-        print(f"Mode: {training_type}")
-        print(f"Poids de départ: {Path(weights).name}")
-        print(f"Epochs: {num_epochs}")
-        print(f"Batch size: {config['batch_size']}")
-        print(f"Image size: {config['img_size']}")
-        print(f"Nom du modèle: {model_name}")
-        print(f"Dataset: {dataset_path}")
-        print("=" * 70)
-        print()
-        
-        # Ajouter yolov5 au sys.path pour l'importer
-        sys.path.insert(0, str(self.yolov5_dir))
-        
-        # Chemin vers le fichier hyperparamètres
-        hyp_path = self.base_dir / "config" / "hyp.yaml"
-        
-        cmd = [
-            sys.executable, 
-            str(self.yolov5_dir / "train.py"),
-            "--img", str(config['img_size']),
-            "--batch", str(config['batch_size']),
-            "--epochs", str(num_epochs),
-            "--data", str(dataset_path),
-            "--weights", weights,
-            "--project", str(self.base_dir / "models" / "trained_models"),
-            "--name", model_name,
-            "--exist-ok",
-            "--patience", str(config['patience'])
-        ]
-        
-        # Ajouter le fichier hyperparamètres si disponible
-        if hyp_path.exists():
-            cmd.extend(["--hyp", str(hyp_path)])
-            print(f"📝 Utilisation des hyperparamètres: {hyp_path}")
-        
-        print("🏃 Lancement de l'entraînement...")
-        print()
-        
-        try:
-            subprocess.run(cmd, check=True)
-            print()
-            print("=" * 70)
-            print("✅ ENTRAÎNEMENT TERMINÉ!")
-            print("=" * 70)
-            print()
-            print("📊 Prochaine étape: Tester le nouveau modèle")
-            print(f"   python scripts/test_on_competition_dataset.py")
-            print()
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Erreur pendant l'entraînement: {e}")
-        except KeyboardInterrupt:
-            print()
-            print("⏹️  Entraînement interrompu par l'utilisateur")
-            print(f"   Pour reprendre: python scripts/train_model_advanced.py --mode resume")
+import yaml
+
+
+def resolve_from_config(config_file: Path, value: str) -> Path:
+    path = Path(value).expanduser()
+    if path.is_absolute():
+        return path
+    return (config_file.parent / path).resolve()
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Entraînement avancé du modèle TRC2025')
-    parser.add_argument('--mode', type=str, default='fine-tune',
-                       choices=['fine-tune', 'from-scratch', 'resume'],
-                       help='Mode d\'entraînement (défaut: fine-tune)')
-    parser.add_argument('--epochs', type=int, default=None,
-                       help='Nombre d\'epochs (défaut: valeur du config)')
-    parser.add_argument('--name-suffix', type=str, default='',
-                       help='Suffixe pour le nom du modèle')
-    
+    root = Path(__file__).resolve().parents[2]
+
+    parser = argparse.ArgumentParser(description="Train the DOFBOT waste-sorting YOLOv5 model")
+    parser.add_argument("--config", type=Path, default=root / "ml" / "config" / "training_config.yaml")
+    parser.add_argument("--yolov5-repo", default=os.environ.get("YOLOV5_REPO"))
+    parser.add_argument("--weights", default=None, help="Override starting weights, e.g. yolov5m.pt")
+    parser.add_argument("--resume", type=Path, default=None, help="Resume from a YOLOv5 last.pt checkpoint")
     args = parser.parse_args()
-    
-    # Afficher les recommandations
-    print()
-    if args.mode == 'fine-tune':
-        print("✅ MODE RECOMMANDÉ: Fine-tuning")
-        print("   Part de votre modèle actuel (85.2%) et l'améliore")
-        print("   Temps estimé: 2-3h pour 50 epochs")
-        print("   Gain attendu: 85.2% → 90-93%")
-    elif args.mode == 'from-scratch':
-        print("⚠️  MODE AVANCÉ: From Scratch")
-        print("   Repart de zéro avec yolov5m pré-entraîné")
-        print("   Temps estimé: 6-8h pour 100 epochs")
-        print("   Gain attendu: 80-92% (incertain)")
-    elif args.mode == 'resume':
-        print("🔄 MODE REPRISE: Resume")
-        print("   Reprend un entraînement interrompu")
-    print()
-    
-    # Créer le trainer
-    trainer = AdvancedModelTrainer()
-    trainer.setup_yolov5()
-    trainer.train(mode=args.mode, epochs=args.epochs, name_suffix=args.name_suffix)
+
+    config_file = args.config.expanduser().resolve()
+    if not config_file.exists():
+        raise SystemExit(f"Training config not found: {config_file}")
+    if not args.yolov5_repo:
+        raise SystemExit("Set YOLOV5_REPO or pass --yolov5-repo /path/to/yolov5")
+
+    yolov5_repo = Path(args.yolov5_repo).expanduser().resolve()
+    train_py = yolov5_repo / "train.py"
+    if not train_py.exists():
+        raise SystemExit(f"YOLOv5 train.py not found: {train_py}")
+
+    with config_file.open("r", encoding="utf-8") as stream:
+        cfg = yaml.safe_load(stream)["training"]
+
+    if args.resume:
+        checkpoint = args.resume.expanduser().resolve()
+        command = [sys.executable, str(train_py), "--resume", str(checkpoint)]
+    else:
+        dataset = resolve_from_config(config_file, cfg["data"])
+        project = resolve_from_config(config_file, cfg["project"])
+        weights = args.weights or f"{cfg['model']}.pt"
+
+        command = [
+            sys.executable,
+            str(train_py),
+            "--data", str(dataset),
+            "--weights", str(weights),
+            "--epochs", str(cfg["epochs"]),
+            "--batch-size", str(cfg["batch_size"]),
+            "--img", str(cfg["img_size"]),
+            "--patience", str(cfg["patience"]),
+            "--project", str(project),
+            "--name", str(cfg["name"]),
+            "--hyp", str(root / "ml" / "config" / "hyp.yaml"),
+        ]
+
+    print("Running:", " ".join(command))
+    subprocess.run(command, cwd=yolov5_repo, check=True)
+
 
 if __name__ == "__main__":
     main()
