@@ -21,7 +21,7 @@ The implementation targets a custom YOLOv5 model.
 The trained weights are intentionally not committed. Supply them with either:
 
 ```text
-models/best.pt
+~/dofbot_models/best.pt
 ```
 
 or:
