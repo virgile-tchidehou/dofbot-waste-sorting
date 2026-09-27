@@ -1,87 +1,53 @@
-"""
-Script d'entraînement avec LES MÊMES paramètres que l'entraînement initial réussi
-Adaptation : moins d'epochs car 510 images au lieu de 102
-"""
+#!/usr/bin/env python3
+"""Launch a straightforward YOLOv5 baseline training run."""
 
+import argparse
+import os
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
-# MÊMES PARAMÈTRES que garbage_classifier_v1 (qui a réussi)
-CONFIG = {
-    'epochs': 30,  # Réduit de 100 à 30 car 5× plus d'images (510 vs 102)
-    'batch_size': 8,  # IDENTIQUE
-    'img_size': 640,  # IDENTIQUE
-    'workers': 8,  # IDENTIQUE
-    'patience': 25,  # IDENTIQUE
-    'cache': None,  # IDENTIQUE (pas de cache)
-}
 
-def train_like_original():
-    """
-    Fine-tuning avec exactement les mêmes paramètres que l'entraînement initial
-    """
-    print("=" * 70)
-    print("🎯 FINE-TUNING - MÊMES PARAMÈTRES QUE L'ENTRAÎNEMENT INITIAL")
-    print("=" * 70)
-    print(f"Configuration:")
-    print(f"  • Epochs: {CONFIG['epochs']} (vs 100 initial, car 5× plus d'images)")
-    print(f"  • Batch size: {CONFIG['batch_size']} ✓ IDENTIQUE")
-    print(f"  • Image size: {CONFIG['img_size']} ✓ IDENTIQUE")
-    print(f"  • Workers: {CONFIG['workers']} ✓ IDENTIQUE")
-    print(f"  • Patience: {CONFIG['patience']} ✓ IDENTIQUE")
-    print()
-    print(f"Dataset:")
-    print(f"  • Premier entraînement: 102 images")
-    print(f"  • Maintenant: 510 images (5× plus)")
-    print()
-    print(f"Durée estimée: 4-6 heures")
-    print(f"Précision espérée: 89-91%")
-    print("=" * 70)
-    
-    # Chemins
-    base_dir = Path(__file__).parent.parent
-    yolov5_dir = base_dir / "models" / "yolov5"
-    dataset_yaml = base_dir / "data" / "dataset.yaml"
-    hyp_yaml = base_dir / "config" / "hyp.yaml"
-    weights = base_dir / "models" / "trained_models" / "garbage_classifier_v1" / "weights" / "best.pt"
-    
-    # Commande YOLOv5 - EXACTEMENT comme l'original
-    cmd = [
+def main():
+    root = Path(__file__).resolve().parents[2]
+
+    parser = argparse.ArgumentParser(description="Train a YOLOv5 baseline for DOFBOT waste sorting")
+    parser.add_argument("--yolov5-repo", default=os.environ.get("YOLOV5_REPO"))
+    parser.add_argument("--dataset", type=Path, default=root / "ml" / "data" / "dataset.yaml")
+    parser.add_argument("--weights", default="yolov5m.pt")
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--img-size", type=int, default=640)
+    parser.add_argument("--name", default="baseline")
+    args = parser.parse_args()
+
+    if not args.yolov5_repo:
+        raise SystemExit("Set YOLOV5_REPO or pass --yolov5-repo /path/to/yolov5")
+
+    yolov5_repo = Path(args.yolov5_repo).expanduser().resolve()
+    train_py = yolov5_repo / "train.py"
+    dataset = args.dataset.expanduser().resolve()
+
+    if not train_py.exists():
+        raise SystemExit(f"YOLOv5 train.py not found: {train_py}")
+    if not dataset.exists():
+        raise SystemExit(f"Dataset config not found: {dataset}")
+
+    command = [
         sys.executable,
-        str(yolov5_dir / "train.py"),
-        "--weights", str(weights),
-        "--data", str(dataset_yaml),
-        "--hyp", str(hyp_yaml),
-        "--epochs", str(CONFIG['epochs']),
-        "--batch-size", str(CONFIG['batch_size']),
-        "--imgsz", str(CONFIG['img_size']),
-        "--workers", str(CONFIG['workers']),
-        "--project", str(base_dir / "models" / "trained_models"),
-        "--name", "garbage_classifier_v2",
-        "--exist-ok",
-        "--patience", str(CONFIG['patience']),
-        # Pas de --cache (comme l'original)
-        # Pas de --rect (comme l'original)
+        str(train_py),
+        "--data", str(dataset),
+        "--weights", args.weights,
+        "--epochs", str(args.epochs),
+        "--batch-size", str(args.batch_size),
+        "--img", str(args.img_size),
+        "--project", str(root / "ml" / "runs"),
+        "--name", args.name,
     ]
-    
-    print("\n🏃 Lancement de l'entraînement...")
-    print("💡 Configuration identique au modèle initial qui a atteint 97.4% mAP\n")
-    
-    try:
-        subprocess.run(cmd, cwd=str(yolov5_dir), check=True)
-        print("\n✅ Entraînement terminé avec succès!")
-        print(f"Modèle sauvegardé dans: models/trained_models/garbage_classifier_v2/")
-        print("\n📊 Pour tester:")
-        print("python scripts/test_on_competition_dataset.py")
-    except subprocess.CalledProcessError as e:
-        print(f"\n❌ Erreur pendant l'entraînement: {e}")
-        sys.exit(1)
-    except KeyboardInterrupt:
-        print("\n⏹️  Entraînement interrompu par l'utilisateur")
-        print("\n💡 Pour reprendre:")
-        print("python scripts/train_model_advanced.py --mode resume")
-        sys.exit(1)
+
+    print("Running:", " ".join(command))
+    subprocess.run(command, cwd=yolov5_repo, check=True)
+
 
 if __name__ == "__main__":
-    train_like_original()
+    main()
