@@ -19,7 +19,7 @@ class CameraConfigurationTests(unittest.TestCase):
             (ROOT / "ros/dofbot_waste_sorting/config/camera.yaml").read_text(encoding="utf-8")
         )
         self.assertEqual(
-            config["ros"]["image_topic"],
+            config["topic"],
             "/dofbot_camera/image_raw",
         )
 
@@ -27,9 +27,9 @@ class CameraConfigurationTests(unittest.TestCase):
         config = yaml.safe_load(
             (ROOT / "ros/dofbot_waste_sorting/config/camera.yaml").read_text(encoding="utf-8")
         )
-        self.assertGreater(config["camera"]["width"], 0)
-        self.assertGreater(config["camera"]["height"], 0)
-        self.assertGreater(config["camera"]["fps"], 0)
+        self.assertGreater(config["width"], 0)
+        self.assertGreater(config["height"], 0)
+        self.assertGreater(config["fps"], 0)
 
 
 if __name__ == "__main__":
