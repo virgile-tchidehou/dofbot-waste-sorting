@@ -24,10 +24,10 @@ class ProjectIntegrationTests(unittest.TestCase):
 
     def test_class_mapping_matches_vision_config(self):
         positions = yaml.safe_load(
-            (ROOT / "config/positions.yaml").read_text(encoding="utf-8")
+            (ROOT / "ros/dofbot_waste_sorting/config/positions.yaml").read_text(encoding="utf-8")
         )
         vision = yaml.safe_load(
-            (ROOT / "config/yolov5_params.yaml").read_text(encoding="utf-8")
+            (ROOT / "ros/dofbot_waste_sorting/config/vision.yaml").read_text(encoding="utf-8")
         )
 
         names = vision["classes"]["names"]
