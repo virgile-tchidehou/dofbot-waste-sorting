@@ -5,12 +5,15 @@ from pathlib import Path
 import sys
 import time
 
+import rospkg
 import yaml
 from Arm_Lib import Arm_Device
 
 
-ROOT = Path(__file__).resolve().parents[3]
-CONFIG = ROOT / "config" / "positions.yaml"
+PACKAGE_ROOT = Path(
+    rospkg.RosPack().get_path("dofbot_waste_sorting")
+)
+CONFIG = PACKAGE_ROOT / "config" / "positions.yaml"
 
 
 def pose_angles(pose, default_gripper):
@@ -32,7 +35,12 @@ def main():
     time.sleep(1.0)
 
     open_gripper = int(config["movement"]["gripper_open"])
-    names = ["home_position", "safe_position", "observation_position", "pick_position"]
+    names = [
+        "home_position",
+        "safe_position",
+        "observation_position",
+        "pick_position",
+    ]
 
     if len(sys.argv) > 1:
         names = sys.argv[1:]
