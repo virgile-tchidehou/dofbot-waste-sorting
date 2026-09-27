@@ -4,8 +4,8 @@
 🌐 SERVEUR WEBSOCKET POUR CALIBRATION DOFBOT
 Permet la communication entre l'interface web et le bras robotique
 
-Équipe: Ucaotech
-TRC 2025 - Cotonou, Bénin
+Projet: dofbot-waste-sorting
+DOFBOT WASTE SORTING - Cotonou, Bénin
 """
 
 import asyncio
@@ -276,7 +276,7 @@ class CalibrationServer:
         """
         print("╔" + "="*58 + "╗")
         print("║  🌐 SERVEUR CALIBRATION DOFBOT                          ║")
-        print("║  TRC 2025 - Cotonou, Bénin 🇧🇯                          ║")
+        print("║  DOFBOT WASTE SORTING                          ║")
         print("╚" + "="*58 + "╝")
         print(f"\n🚀 Serveur WebSocket démarré sur ws://{host}:{port}")
         print(f"📊 Mode: {'🔄 SIMULATION' if self.simulation_mode else '✅ CONNECTÉ'}")
