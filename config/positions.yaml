@@ -1,77 +1,84 @@
-# Configuration des positions calibrées pour le système de tri DOFbot
-# Positions extraites du code fonctionnel dofbot_tri_system.py
+# DOFBOT joint presets used by the waste-sorting proof of concept.
+# These values are setup-specific. Recalibrate them before running on another arm.
 
-# Position de repos initiale (bras replié)
 home_position:
-  joint1: 90    # Rotation base
-  joint2: 90    # Épaule
-  joint3: 90    # Coude
-  joint4: 90    # Poignet
-  joint5: 90    # Rotation pince
-  gripper: 150  # Pince ouverte
-
-# Position d'observation (au-dessus de la zone de détection)
-observation_position:
   joint1: 90
   joint2: 130
-  joint3: 50
-  joint4: 140
+  joint3: 0
+  joint4: 0
   joint5: 90
-  gripper: 150  # Pince ouverte pour ne pas obstruer la vue
+  gripper: 30
 
-# Positions des 3 bacs de tri
+safe_position:
+  joint1: 90
+  joint2: 80
+  joint3: 50
+  joint4: 50
+  joint5: 270
+  gripper: 30
+
+observation_position:
+  joint1: 90
+  joint2: 110
+  joint3: 70
+  joint4: 90
+  joint5: 90
+  gripper: 30
+
+pick_position:
+  joint1: 90
+  joint2: 53
+  joint3: 33
+  joint4: 36
+  joint5: 270
+  gripper: 30
+
 bins:
-  # Bac 1 : Déchets recyclables (papier, plastique, métal)
   recyclables:
-    joint1: 45    # 45° à gauche
+    joint1: 45
     joint2: 110
     joint3: 70
     joint4: 130
     joint5: 90
-    description: "Bac pour déchets recyclables (papier, plastique, métal)"
-  
-  # Bac 2 : Déchets ménagers (organiques, non-recyclables)
+    gripper: 135
+
   menagers:
-    joint1: 90    # Centre (0° relatif)
+    joint1: 90
     joint2: 110
     joint3: 70
     joint4: 130
     joint5: 90
-    description: "Bac pour déchets ménagers ordinaires"
-  
-  # Bac 3 : Déchets dangereux (électroniques, batteries, chimiques)
+    gripper: 135
+
   dangereux:
-    joint1: 135   # 45° à droite
+    joint1: 135
     joint2: 110
     joint3: 70
     joint4: 130
     joint5: 90
-    description: "Bac pour déchets dangereux nécessitant traitement spécial"
+    gripper: 135
 
-# Paramètres de mouvement
 movement:
-  speed: 50           # Vitesse par défaut (0-100)
-  acceleration: 30    # Accélération par défaut
-  gripper_open: 150   # Valeur pour pince ouverte (0-255)
-  gripper_close: 20   # Valeur pour pince fermée
-  
-  # Délais (en secondes)
+  gripper_open: 30
+  gripper_close: 135
   delays:
-    after_move: 0.5       # Attente après un mouvement
-    after_grasp: 1.0      # Attente après avoir saisi un objet
-    after_release: 0.5    # Attente après avoir relâché un objet
+    after_move: 0.5
+    after_gripper: 0.8
+    after_grasp: 0.8
+    after_release: 0.5
 
-# Limites de sécurité (degrés)
+classification:
+  min_confidence: 0.60
+
 limits:
-  joint1: [0, 180]    # Rotation base
-  joint2: [0, 180]    # Épaule
-  joint3: [0, 180]    # Coude
-  joint4: [0, 180]    # Poignet
-  joint5: [0, 180]    # Rotation pince
-  gripper: [0, 255]   # Pince (valeur PWM)
+  joint1: [0, 270]
+  joint2: [0, 180]
+  joint3: [0, 180]
+  joint4: [0, 180]
+  joint5: [0, 270]
+  gripper: [0, 180]
 
-# Mapping des classes de détection vers les bacs
 class_to_bin:
-  0: "dangereux"      # Classe 0 → Bac dangereux
-  1: "menagers"       # Classe 1 → Bac ménagers
-  2: "recyclables"    # Classe 2 → Bac recyclables
+  0: dangereux
+  1: menagers
+  2: recyclables
