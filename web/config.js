@@ -1,5 +1,5 @@
 // 🔧 CONFIGURATION SERVEUR - Interface de Calibration DOFbot
-// TRC 2025 - Cotonou, Bénin 🇧🇯
+// DOFBOT waste-sorting calibration interface
 
 /**
  * INSTRUCTIONS :
