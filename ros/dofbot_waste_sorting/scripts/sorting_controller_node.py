@@ -4,6 +4,7 @@
 from pathlib import Path
 import time
 
+import rospkg
 import rospy
 import yaml
 from sensor_msgs.msg import Image
@@ -14,7 +15,10 @@ from dofbot_waste_sorting.srv import Classify, ClassifyRequest
 try:
     import smbus
 except ImportError:
-    smbus = None
+    try:
+        import smbus2 as smbus
+    except ImportError:
+        smbus = None
 
 
 class DofbotSortingController:
@@ -27,7 +31,10 @@ class DofbotSortingController:
         self.i2c_register = int(rospy.get_param("~i2c_register", 0))
         self.move_duration_ms = int(rospy.get_param("~move_duration_ms", 1200))
 
-        default_config = self._source_root() / "config" / "positions.yaml"
+        package_root = Path(
+            rospkg.RosPack().get_path("dofbot_waste_sorting")
+        )
+        default_config = package_root / "config" / "positions.yaml"
         config_path = Path(
             rospy.get_param("~positions_config", str(default_config))
         ).expanduser()
@@ -40,7 +47,7 @@ class DofbotSortingController:
         self.bus = None
         if self.use_i2c:
             if smbus is None:
-                rospy.logwarn("smbus is unavailable; I2C triggering is disabled")
+                rospy.logwarn("SMBus support is unavailable; I2C triggering is disabled")
                 self.use_i2c = False
             else:
                 try:
@@ -56,14 +63,6 @@ class DofbotSortingController:
 
         self.move_to("home_position")
         rospy.loginfo("DOFBOT sorting controller ready")
-
-    @staticmethod
-    def _source_root():
-        current = Path(__file__).resolve()
-        try:
-            return current.parents[3]
-        except IndexError:
-            return Path.cwd()
 
     @staticmethod
     def _load_config(path):
@@ -97,7 +96,10 @@ class DofbotSortingController:
             return False
 
         self.arm.Arm_serial_servo_write6_array(angles, duration_ms)
-        time.sleep(duration_ms / 1000.0 + self.config["movement"]["delays"]["after_move"])
+        time.sleep(
+            duration_ms / 1000.0
+            + self.config["movement"]["delays"]["after_move"]
+        )
         return True
 
     def move_to(self, pose_name, gripper=None):
@@ -123,7 +125,10 @@ class DofbotSortingController:
         if not self.use_i2c or self.bus is None:
             return False
         try:
-            return self.bus.read_byte_data(self.i2c_address, self.i2c_register) == 1
+            return self.bus.read_byte_data(
+                self.i2c_address,
+                self.i2c_register,
+            ) == 1
         except Exception as exc:
             rospy.logwarn_throttle(2.0, "I2C read failed: %s", exc)
             return False
@@ -132,13 +137,21 @@ class DofbotSortingController:
         if not self.use_i2c or self.bus is None:
             return
         try:
-            self.bus.write_byte_data(self.i2c_address, self.i2c_register, 0)
+            self.bus.write_byte_data(
+                self.i2c_address,
+                self.i2c_register,
+                0,
+            )
         except Exception as exc:
             rospy.logwarn("Unable to reset I2C detection flag: %s", exc)
 
     def capture_image(self):
         try:
-            return rospy.wait_for_message(self.camera_topic, Image, timeout=5.0)
+            return rospy.wait_for_message(
+                self.camera_topic,
+                Image,
+                timeout=5.0,
+            )
         except rospy.ROSException:
             rospy.logwarn("No image received from %s", self.camera_topic)
             return None
@@ -188,7 +201,9 @@ class DofbotSortingController:
             return
 
         class_id, confidence = self.classify(image)
-        threshold = float(self.config["classification"]["min_confidence"])
+        threshold = float(
+            self.config["classification"]["min_confidence"]
+        )
 
         if class_id < 0 or confidence < threshold:
             rospy.logwarn(
@@ -214,9 +229,11 @@ class DofbotSortingController:
 
     def run(self):
         rate = rospy.Rate(2)
+
         if not self.use_i2c:
             rospy.logwarn(
-                "Automatic trigger is disabled. Enable ~use_i2c after connecting the detector."
+                "Automatic trigger is disabled. "
+                "Enable ~use_i2c after connecting the detector."
             )
 
         while not rospy.is_shutdown():
