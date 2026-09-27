@@ -1,17 +1,5 @@
-# Camera defaults used by the ROS camera node.
-
-camera:
-  device_id: 0
-  width: 640
-  height: 480
-  fps: 10
-  encoding: bgr8
-
-ros:
-  image_topic: /dofbot_camera/image_raw
-  frame_id: dofbot_camera
-  queue_size: 2
-
-notes:
-  - Camera index and acquisition settings can be overridden with ROS private parameters.
-  - Intrinsic calibration is not hard-coded here; calibrate the actual camera if metric geometry is required.
+camera_index: 0
+width: 640
+height: 480
+fps: 10.0
+topic: /dofbot_camera/image_raw
