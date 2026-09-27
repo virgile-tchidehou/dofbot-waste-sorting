@@ -1,26 +1,3 @@
-# Runtime vision defaults for the DOFBOT waste-sorting project.
-
-model:
-  weights_path: models/best.pt
-  framework: yolov5
-
-inference:
-  conf_threshold: 0.60
-  iou_threshold: 0.45
-  img_size: 640
-
-classes:
-  names:
-    - dangereux
-    - menagers
-    - recyclables
-  num_classes: 3
-
-ros:
-  image_topic: /dofbot_camera/image_raw
-  service_name: /vision/classify
-
-notes:
-  - Model weights are not committed to Git.
-  - Use DOFBOT_MODEL_PATH to override the default weights location.
-  - Thresholds should be validated on the actual camera and lighting setup.
+conf_threshold: 0.60
+iou_threshold: 0.45
+img_size: 640
