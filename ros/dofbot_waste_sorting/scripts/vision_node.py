@@ -4,7 +4,6 @@
 import os
 from pathlib import Path
 
-import cv2
 import rospy
 import torch
 from cv_bridge import CvBridge
@@ -24,7 +23,7 @@ class VisionNode:
         self.iou_threshold = float(rospy.get_param("~iou_threshold", 0.45))
         self.image_size = int(rospy.get_param("~img_size", 640))
 
-        default_weights = self._source_root() / "models" / "best.pt"
+        default_weights = Path.home() / "dofbot_models" / "best.pt"
         configured_weights = rospy.get_param(
             "~weights_path",
             os.environ.get("DOFBOT_MODEL_PATH", str(default_weights)),
@@ -40,14 +39,6 @@ class VisionNode:
             self.handle_classification,
         )
         rospy.loginfo("Vision service ready on /vision/classify")
-
-    @staticmethod
-    def _source_root():
-        current = Path(__file__).resolve()
-        try:
-            return current.parents[3]
-        except IndexError:
-            return Path.cwd()
 
     def _load_model(self):
         if not self.weights_path.exists():
