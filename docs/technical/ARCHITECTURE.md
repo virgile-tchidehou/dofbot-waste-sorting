@@ -66,7 +66,7 @@ These values can be overridden through ROS parameters.
 
 ### 5. Calibration
 
-Joint presets live in `config/positions.yaml`.
+Joint presets live in `ros/dofbot_waste_sorting/config/positions.yaml`.
 
 Calibration is deliberately kept outside the controller code so the software can be adapted to a different physical layout without rewriting the state flow.
 
