@@ -1,6 +1,6 @@
 # DOFBOT Calibration Guide
 
-Calibration is the most hardware-specific part of this project. Never assume that the joint values committed in `config/positions.yaml` are safe for another arm or another physical layout.
+Calibration is the most hardware-specific part of this project. Never assume that the joint values committed in `ros/dofbot_waste_sorting/ros/dofbot_waste_sorting/config/positions.yaml` are safe for another arm or another physical layout.
 
 ## Stored poses
 
@@ -25,7 +25,7 @@ Before moving the arm:
 
 ## Direct pose validation
 
-The lightweight direct-control script reads `config/positions.yaml` and sends one pose at a time through `Arm_Lib`.
+The lightweight direct-control script reads `ros/dofbot_waste_sorting/ros/dofbot_waste_sorting/config/positions.yaml` and sends one pose at a time through `Arm_Lib`.
 
 ```bash
 python3 ros/dofbot_waste_sorting/scripts/sorting_sequence_demo.py home_position
@@ -69,7 +69,7 @@ The browser interface can connect to the Jetson over the local network and move 
 The canonical pose file is:
 
 ```text
-config/positions.yaml
+ros/dofbot_waste_sorting/config/positions.yaml
 ```
 
 After calibration, review the diff before committing new values. Calibration is part of the physical setup, not a universal software constant.
