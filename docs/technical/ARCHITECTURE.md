@@ -1,5 +1,7 @@
 # 🏗️ Architecture Système
 
+> **Historical validation note:** performance figures in this document come from the 2025 project notes. The complete training dataset and trained weights are not distributed in this public repository, so those figures should not be treated as independently reproducible benchmarks from the repository alone.
+
 **Ucaotech DOFbot TRC2025 - Documentation Technique**
 
 ---
@@ -52,7 +54,7 @@
 
 | Couche | Technologies |
 |--------|-------------|
-| **Hardware** | DOFbot 6-axis, Jetson Nano Orin, Intel RealSense D435 |
+| **Hardware** | DOFbot 6-axis, Jetson Nano, Intel RealSense D435 |
 | **OS** | Ubuntu 20.04 LTS (ARM64) |
 | **Middleware** | ROS Noetic |
 | **Vision** | OpenCV 4.5+, MediaPipe, Intel RealSense SDK |
@@ -278,7 +280,7 @@ Neck: PANet
 Head: YOLOv8 Detection Head
 
 # Performance
-Inference time: ~35ms (Jetson Nano Orin)
+Inference time: ~35ms (Jetson Nano)
 FPS: ~28 images/sec
 mAP@0.5: 0.92
 mAP@0.5:0.95: 0.78
@@ -588,7 +590,7 @@ Hardware (100Hz)
 | Étape | Latence | Notes |
 |-------|---------|-------|
 | Acquisition image | ~33ms | 30 FPS caméra |
-| Détection YOLO | ~35ms | Jetson Nano Orin |
+| Détection YOLO | ~35ms | Jetson Nano |
 | Planification | ~10ms | Calculs cinématiques |
 | Contrôle | ~2ms | Commande servos |
 | **Total Pipeline** | **~80ms** | 12.5 Hz effectif |
@@ -643,7 +645,7 @@ User     Vision    Planning   Control   Robot
 
 ```
 ┌────────────────────────────────────────────┐
-│         Jetson Nano Orin (Ubuntu 20.04)    │
+│         Jetson Nano (Ubuntu 20.04)    │
 ├────────────────────────────────────────────┤
 │                                            │
 │  ┌──────────────┐  ┌──────────────┐       │
