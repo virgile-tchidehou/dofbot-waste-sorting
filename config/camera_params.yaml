@@ -1,98 +1,17 @@
-# Configuration de la caméra DOFbot
-# Paramètres extraits du code fonctionnel final_camera_node.py
+# Camera defaults used by the ROS camera node.
 
-# Paramètres de la caméra
 camera:
-  device_id: 0              # ID du périphérique caméra (/dev/video0)
-  name: "DOFbot_Camera"     # Nom de la caméra
-  
-  # Résolution
-  resolution:
-    width: 640              # Largeur en pixels
-    height: 480             # Hauteur en pixels
-  
-  # Fréquence d'images
-  framerate:
-    fps: 10                 # Images par seconde (10 FPS pour stabilité)
-    adaptive: true          # Ajuster dynamiquement selon charge CPU
-  
-  # Format d'image
-  format:
-    encoding: "bgr8"        # Format OpenCV (BGR 8 bits)
-    colorspace: "BGR"       # Espace de couleur
-  
-  # Auto-ajustements
-  auto:
-    exposure: true          # Auto-exposition activée
-    white_balance: true     # Balance des blancs automatique
-    focus: false            # Focus fixe (pas d'autofocus)
+  device_id: 0
+  width: 640
+  height: 480
+  fps: 10
+  encoding: bgr8
 
-# Paramètres ROS
 ros:
-  # Topics publiés
-  topics:
-    raw_image: "/camera/image_raw"              # Images brutes
-    compressed: "/camera/image_raw/compressed"  # Images compressées (optionnel)
-  
-  # Fréquence de publication
-  publish_rate: 10          # Hz (synchronisé avec FPS caméra)
-  queue_size: 1             # Taille de la file (garder dernière image)
-  
-  # Frame ID pour TF
-  frame_id: "camera_link"   # Repère de référence
-  
-# Calibration de la caméra (intrinsèques)
-calibration:
-  # Matrice de calibration K (3x3)
-  camera_matrix:
-    - [525.0,   0.0, 320.0]    # fx, 0, cx
-    - [  0.0, 525.0, 240.0]    # 0, fy, cy
-    - [  0.0,   0.0,   1.0]    # 0,  0,  1
-  
-  # Coefficients de distorsion (k1, k2, p1, p2, k3)
-  distortion_coefficients: [0.0, 0.0, 0.0, 0.0, 0.0]
-  
-  # Modèle de distorsion
-  distortion_model: "plumb_bob"  # Modèle standard
-  
-# Position de la caméra par rapport au bras
-# (À ajuster selon montage physique)
-camera_mount:
-  position:          # Position en mètres
-    x: 0.15          # 15 cm devant la base
-    y: 0.0           # Centré
-    z: 0.20          # 20 cm au-dessus de la base
-  
-  orientation:       # Orientation en degrés
-    roll: 0          # Pas d'inclinaison latérale
-    pitch: -45       # Incliné 45° vers le bas
-    yaw: 0           # Pas de rotation horizontale
+  image_topic: /dofbot_camera/image_raw
+  frame_id: dofbot_camera
+  queue_size: 2
 
-# Zone de travail (région d'intérêt)
-roi:
-  enabled: false           # Activer le ROI
-  x: 0                     # Position X du coin supérieur gauche
-  y: 0                     # Position Y du coin supérieur gauche
-  width: 640               # Largeur du ROI
-  height: 480              # Hauteur du ROI
-
-# Performance
-performance:
-  use_compressed: false    # Utiliser la compression pour économiser bande passante
-  compression_quality: 80  # Qualité JPEG (0-100)
-  
-  # Buffer
-  buffer_size: 1           # Nombre d'images en buffer (1 = dernière uniquement)
-  drop_frames: true        # Ignorer les images si traitement trop lent
-
-# Debug
-debug:
-  show_preview: false      # Afficher aperçu vidéo (GUI requise)
-  save_frames: false       # Sauvegarder les frames sur disque
-  save_dir: "/tmp/camera"  # Répertoire de sauvegarde
-  log_fps: true            # Afficher le FPS dans les logs
-
-# Notes d'utilisation
-# - Pour ajuster l'exposition: v4l2-ctl -d /dev/video0 -c exposure_auto=1
-# - Pour vérifier les capacités: v4l2-ctl -d /dev/video0 --list-formats-ext
-# - Résolution 640x480 recommandée pour YOLOv5 (sera redimensionnée à 640x640)
+notes:
+  - Camera index and acquisition settings can be overridden with ROS private parameters.
+  - Intrinsic calibration is not hard-coded here; calibrate the actual camera if metric geometry is required.
