@@ -1,5 +1,8 @@
 # 🧠 TRC2025 Training Models# 🤖 Projet DOFBot - Tri Automatique de Déchets
 
+> **Historical validation note:** accuracy and mAP figures below are retained from the 2025 project records. The full dataset and trained model weights are intentionally excluded from the public repository, so these numbers are not independently reproducible from this repository alone.
+
+
 
 
 **Module d'Entraînement des Modèles ML - Ucaotech DOFbot TRC2025****TRC2025 - TEKBOT Robotics Challenge**  
