@@ -1,121 +1,88 @@
 # Deployment Guide
 
-This guide reflects the repository as it exists today. The project was developed for a DOFbot/Jetson ROS 1 environment; exact ROS and JetPack versions depend on the image installed on the robot.
+This project targets a Yahboom DOFBOT running on a Jetson Nano with a ROS 1 / Catkin environment.
 
-## Prerequisites
+Exact JetPack and ROS versions depend on the system image installed on the robot. Keep the vendor-provided GPU stack intact unless you have a reason to replace it.
 
-- Yahboom DOFbot with Jetson Nano
-- ROS 1 / Catkin environment compatible with the robot image
+## Requirements
+
+- Yahboom DOFBOT
+- Jetson Nano
+- ROS 1 with Catkin
 - Python 3
-- OpenCV and `cv_bridge`
+- OpenCV + `cv_bridge`
 - Yahboom `Arm_Lib`
-- the external DOFbot kinematics package used by `tri.launch`
-- trained model weights supplied separately
-
-The repository itself does not include the large model weights or complete training dataset.
+- trained YOLOv5 weights
+- optional I²C object detector
 
 ## Clone
 
 ```bash
-git clone https://github.com/virgile-tchidehou/projet_robotique2k25UCAO.git
-cd projet_robotique2k25UCAO
+git clone https://github.com/virgile-tchidehou/dofbot-waste-sorting.git
+cd dofbot-waste-sorting
 ```
 
 ## Python dependencies
-
-Use the packages already provided by JetPack/your robot image when possible, especially CUDA-enabled PyTorch and OpenCV.
 
 ```bash
 pip3 install -r requirements.txt
 ```
 
-Do not blindly replace the Jetson-specific PyTorch build with a generic desktop wheel.
+On Jetson, avoid replacing a working CUDA-enabled PyTorch installation with a generic CPU wheel.
 
 ## Catkin workspace
 
-From the repository root:
-
 ```bash
 mkdir -p ~/catkin_ws/src
-ln -s "$(pwd)/ros_package" ~/catkin_ws/src/dofbot_tri
+ln -s "$(pwd)/ros/dofbot_waste_sorting" ~/catkin_ws/src/dofbot_waste_sorting
 
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
 ```
 
-## Launch the robot workflow
+## Model
 
-```bash
-roslaunch dofbot_tri tri.launch
+Place the model at:
+
+```text
+models/best.pt
 ```
 
-The launch file starts the project vision and controller nodes and expects the DOFbot kinematics service from the original robot environment.
-
-## Camera check
-
-The camera node uses OpenCV device index `0`.
+or define:
 
 ```bash
-python3 - <<'PY'
-import cv2
-cap = cv2.VideoCapture(0)
-print("camera available:", cap.isOpened())
-cap.release()
-PY
+export DOFBOT_MODEL_PATH=/absolute/path/to/best.pt
 ```
 
-## DOFbot library check
+If a local clone of YOLOv5 is already available on the Jetson:
 
 ```bash
-python3 - <<'PY'
-from Arm_Lib import Arm_Device
-arm = Arm_Device()
-print("Arm_Lib available")
-PY
+export YOLOV5_REPO=/absolute/path/to/yolov5
 ```
 
-Only run movement tests with the workspace clear and the arm in a safe mechanical configuration.
-
-## Calibration
-
-Console calibration:
+## Launch
 
 ```bash
-python3 scripts/calibrate_positions.py
+roslaunch dofbot_waste_sorting sorting.launch
 ```
 
-Web calibration server:
+The launch file starts:
+
+- the USB camera publisher;
+- the vision classification service;
+- the sorting controller.
+
+## I²C trigger
+
+The controller expects bus 1, address `0x08`, register `0` by default.
+
+For ROS-only validation:
 
 ```bash
-python3 scripts/calibration_server.py
+roslaunch dofbot_waste_sorting sorting.launch use_i2c:=false
 ```
 
-Then open `web/calibration_interface.html`. If the browser is on another device, configure the Jetson IP in the interface/configuration.
+## Before the first physical cycle
 
-## Model weights
-
-The vision node expects a trained model under the project model path. Model files such as `*.pt` are deliberately excluded from Git because they are large generated artifacts.
-
-## Validation
-
-Useful checks include:
-
-```bash
-python3 tests/test_camera.py
-python3 tests/test_vision_node.py
-python3 tests/test_dofbot_movements.py
-python3 tests/test_integration.py
-```
-
-Some tests require hardware, ROS services or model weights and are not expected to pass in a generic desktop environment.
-
-## Troubleshooting
-
-For network/calibration issues, see:
-
-- [Network configuration](NETWORK_CONFIG.md)
-- [Calibration guide](CALIBRATION.md)
-- [Web interface guide](../../web/README.md)
-
-For architecture details, see [../technical/ARCHITECTURE.md](../technical/ARCHITECTURE.md).
+Validate each pose independently using the calibration guide. The values in `config/positions.yaml` depend on the physical location of the camera, pick zone and bins.
