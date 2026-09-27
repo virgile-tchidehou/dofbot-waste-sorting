@@ -1,8 +1,12 @@
-path: D:\TRC2025\docTel\TRC_Doc\TRC\dofbot_tri_complete\data
-train: augmented/train/images
-val: prepared/val/images
+# YOLOv5 dataset configuration.
+# Set 'path' to the dataset root on the machine used for training.
+path: /path/to/dofbot-waste-dataset
+
+train: train/images
+val: val/images
+
 nc: 3
 names:
-- dangereux
-- menagers
-- recyclables
+  - dangereux
+  - menagers
+  - recyclables
