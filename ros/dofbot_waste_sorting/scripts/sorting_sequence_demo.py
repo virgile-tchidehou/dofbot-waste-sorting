@@ -1,45 +1,55 @@
 #!/usr/bin/env python3
+"""Small direct-control demo for validating calibrated DOFBOT positions."""
+
+from pathlib import Path
+import sys
 import time
+
+import yaml
 from Arm_Lib import Arm_Device
 
-class DofbotTriSystem:
-    def __init__(self):
-        self.Arm = Arm_Device()
-        time.sleep(0.1)
-        
-        # Positions de calibration
-        self.tri_positions = {'pick_position': {'angles': [90, 53, 33, 36, 270, 135], 'description': 'Position pour prendre le cube (p_Brown)', 'source': 'p_Brown'}, 'corbeille_1': {'angles': [65, 22, 64, 56, 270, 60], 'description': 'Corbeille 1 - Position jaune', 'source': 'p_Yellow'}, 'corbeille_2': {'angles': [117, 19, 66, 56, 270, 60], 'description': 'Corbeille 2 - Position rouge', 'source': 'p_Red'}, 'corbeille_3': {'angles': [136, 66, 20, 29, 270, 60], 'description': 'Corbeille 3 - Position verte', 'source': 'p_Green'}, 'position_sure': {'angles': [90, 80, 50, 50, 270, 60], 'description': 'Position sûre entre les mouvements (p_top)', 'source': 'p_top'}, 'position_home': {'angles': [90, 130, 0, 0, 90, 60], 'description': 'Position home (p_mould)', 'source': 'p_mould'}}
-        
-        # Initialisation
-        self.move_to_home()
 
-    def move_to_home(self):
-        """Position home"""
-        home = [90, 130, 0, 0, 90, 60]
-        self.Arm.Arm_serial_servo_write6_array(home, 1500)
-        time.sleep(2)
+ROOT = Path(__file__).resolve().parents[3]
+CONFIG = ROOT / "config" / "positions.yaml"
 
-    def trier_cube(self, corbeille_num):
-        """Fonction principale de tri"""
-        print(f"? Début tri vers corbeille {corbeille_num}")
-        
-        # Séquence de prise
-        self.Arm.Arm_serial_servo_write6_array([90, 80, 50, 50, 270, 60], 1000)
-        time.sleep(1)
-        self.Arm.Arm_serial_servo_write6_array([90, 53, 33, 36, 270, 135], 1000) 
-        time.sleep(1)
-        self.Arm.Arm_serial_servo_write6_array([90, 80, 50, 50, 270, 60], 1000)
-        time.sleep(1)
-        
-        # Séquence de dépôt
-        corbeille_key = f"corbeille_{corbeille_num}"
-        corbeille_angles = self.tri_positions[corbeille_key]["angles"]
-        self.Arm.Arm_serial_servo_write6_array(corbeille_angles, 1000)
-        time.sleep(1)
-        self.Arm.Arm_serial_servo_write6_array([90, 80, 50, 50, 270, 60], 1000)
-        
-        print(f"? Cube trié vers corbeille {corbeille_num}")
 
-# Utilisation:
-# tri_system = DofbotTriSystem()
-# tri_system.trier_cube(1)  # Trier vers corbeille 1
+def pose_angles(pose, default_gripper):
+    return [
+        int(pose["joint1"]),
+        int(pose["joint2"]),
+        int(pose["joint3"]),
+        int(pose["joint4"]),
+        int(pose["joint5"]),
+        int(pose.get("gripper", default_gripper)),
+    ]
+
+
+def main():
+    with CONFIG.open("r", encoding="utf-8") as stream:
+        config = yaml.safe_load(stream)
+
+    arm = Arm_Device()
+    time.sleep(1.0)
+
+    open_gripper = int(config["movement"]["gripper_open"])
+    names = ["home_position", "safe_position", "observation_position", "pick_position"]
+
+    if len(sys.argv) > 1:
+        names = sys.argv[1:]
+
+    for name in names:
+        if name in config:
+            pose = config[name]
+        elif name in config["bins"]:
+            pose = config["bins"][name]
+        else:
+            raise KeyError(f"Unknown pose: {name}")
+
+        angles = pose_angles(pose, open_gripper)
+        print(f"{name}: {angles}")
+        arm.Arm_serial_servo_write6_array(angles, 1200)
+        time.sleep(1.7)
+
+
+if __name__ == "__main__":
+    main()
