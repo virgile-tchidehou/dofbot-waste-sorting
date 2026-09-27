@@ -1,10 +1,23 @@
 <launch>
-    <!-- Service de kinématique inverse existant -->
-    <node pkg="arm_info" type="kinemarics_arm" name="kinemarics_server" output="screen" />
-    
-    <!-- N?ud de classification -->
-    <node pkg="dofbot_tri" type="vision_node.py" name="vision_node" output="screen" />
-    
-    <!-- Contrôleur principal -->
-    <node pkg="dofbot_tri" type="i2c_controller_node.py" name="dofbot_tri_controller" output="screen" />
+  <arg name="camera_index" default="0" />
+  <arg name="use_i2c" default="true" />
+
+  <node pkg="dofbot_waste_sorting"
+        type="camera_node.py"
+        name="dofbot_camera"
+        output="screen">
+    <param name="camera_index" value="$(arg camera_index)" />
+  </node>
+
+  <node pkg="dofbot_waste_sorting"
+        type="vision_node.py"
+        name="waste_vision"
+        output="screen" />
+
+  <node pkg="dofbot_waste_sorting"
+        type="sorting_controller_node.py"
+        name="waste_sorting_controller"
+        output="screen">
+    <param name="use_i2c" value="$(arg use_i2c)" />
+  </node>
 </launch>
