@@ -1,86 +1,19 @@
-# Dépendances Python pour ucaotech_dofbot_trc2025
-# Installation: pip3 install -r requirements.txt
-
-# ═══════════════════════════════════════════════════════════
-# Deep Learning & Vision
-# ═══════════════════════════════════════════════════════════
-
-# PyTorch (pré-installé avec JetPack sur Jetson Nano)
-# torch==1.10.0
-# torchvision==0.11.0
-
-# YOLOv5 dépendances
-ultralytics>=8.0.0        # Outils YOLOv5 (optionnel, code inclus dans projet)
-opencv-python>=4.5.0      # Computer Vision (pré-installé sur Jetson)
-pillow>=8.0.0             # Traitement d'images
-numpy>=1.19.0             # Calcul numérique
-
-# ═══════════════════════════════════════════════════════════
-# Configuration & Data
-# ═══════════════════════════════════════════════════════════
-
-pyyaml>=5.4.0             # Lecture fichiers YAML
-pandas>=1.1.0             # Manipulation données YOLOv5
-
-# ═══════════════════════════════════════════════════════════
-# ROS Dependencies (généralement pré-installées)
-# ═══════════════════════════════════════════════════════════
-
-# rospy                   # ROS Python (installé avec ros-melodic-desktop)
-# cv_bridge               # Conversion OpenCV <-> ROS (ros-melodic-cv-bridge)
-# sensor_msgs             # Messages capteurs ROS
-
-# ═══════════════════════════════════════════════════════════
-# Hardware Control
-# ═══════════════════════════════════════════════════════════
-
-# Arm_Lib                 # Contrôle DOFbot (installé manuellement depuis Yahboom)
-smbus2>=0.4.0             # Communication I2C (si Arm_Lib non disponible)
-
-# ═══════════════════════════════════════════════════════════
-# Utilities
-# ═══════════════════════════════════════════════════════════
-
-tqdm>=4.60.0              # Barres de progression
-matplotlib>=3.3.0         # Visualisation (optionnel)
-seaborn>=0.11.0           # Graphiques statistiques (optionnel)
-
-# ═══════════════════════════════════════════════════════════
-# Development & Testing (optionnel)
-# ═══════════════════════════════════════════════════════════
-
-pytest>=6.2.0             # Tests unitaires
-black>=21.0               # Formatage code
-flake8>=3.9.0             # Linting
-
-# ═══════════════════════════════════════════════════════════
-# NOTES IMPORTANTES
-# ═══════════════════════════════════════════════════════════
+# Runtime and development dependencies for dofbot-waste-sorting.
 #
-# Sur Jetson Nano (JetPack 4.x):
-# --------------------------------
-# Les packages suivants sont PRÉ-INSTALLÉS avec JetPack:
-#   - PyTorch 1.10.0 (compilé pour CUDA 10.2)
-#   - Torchvision 0.11.0
-#   - OpenCV 4.5.x (avec CUDA)
-#   - NumPy 1.19.x
-#
-# NE PAS RÉINSTALLER PyTorch/Torchvision via pip sur Jetson !
-# Utilisez la version JetPack pour support GPU.
-#
-# Installation ROS Melodic:
-# -------------------------
-# sudo apt-get install ros-melodic-cv-bridge ros-melodic-sensor-msgs
-#
-# Installation Arm_Lib (DOFbot):
-# ------------------------------
-# Suivre les instructions Yahboom:
-# git clone https://github.com/Yahboom-Robotics/Dofbot-jetson-nano.git
-# cd Dofbot-jetson-nano
-# sudo python3 setup.py install
-#
-# Vérification dépendances:
-# -------------------------
-# python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
-# python3 -c "import cv2; print(f'OpenCV: {cv2.__version__}')"
-#
+# Jetson note:
+# Keep the CUDA-enabled PyTorch/OpenCV stack supplied by the JetPack image
+# when possible. ROS packages (rospy, cv_bridge, sensor_msgs) and Yahboom
+# Arm_Lib are installed through the robot/ROS environment, not from this file.
+
+numpy>=1.19
+opencv-python>=4.5
+Pillow>=8.0
+PyYAML>=5.4
+pandas>=1.1
+smbus2>=0.4
+websockets>=10
+matplotlib>=3.3
+tqdm>=4.60
+
+# Development / software-only tests
+pytest>=6.2
