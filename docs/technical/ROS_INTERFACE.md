@@ -85,7 +85,7 @@ The controller uses the classification service and the Yahboom `Arm_Lib` API.
 | `~conf_threshold` | `0.60` |
 | `~iou_threshold` | `0.45` |
 | `~img_size` | `640` |
-| `~weights_path` | `models/best.pt` in source checkout |
+| `~weights_path` | `~/dofbot_models/best.pt` |
 
 Environment variables:
 
