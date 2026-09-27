@@ -12,7 +12,7 @@ class MovementConfigurationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config = yaml.safe_load(
-            (ROOT / "config/positions.yaml").read_text(encoding="utf-8")
+            (ROOT / "ros/dofbot_waste_sorting/config/positions.yaml").read_text(encoding="utf-8")
         )
 
     def test_required_poses_exist(self):
